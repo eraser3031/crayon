@@ -6,7 +6,7 @@ let package = Package(
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [.library(name: "Crayon", targets: ["Crayon"])],
     targets: [
-        .target(name: "Crayon"),
+        .target(name: "Crayon", resources: [.process("Shaders")]),
         .testTarget(name: "CrayonTests", dependencies: ["Crayon"])
     ]
 )
