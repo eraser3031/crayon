@@ -52,23 +52,44 @@ private struct BrushFill<S: Shape>: View {
 
     var body: some View {
         GeometryReader { geometry in
+            let outset: CGFloat = {
+                if case let .crayon(grainSize, _) = fillStyle, strength > 0 {
+                    return ceil(5 * grainSize * strength) + 1
+                }
+                return 0
+            }()
             let path = shape.path(in: CGRect(origin: .zero, size: geometry.size))
+                .applying(CGAffineTransform(translationX: outset, y: outset))
             let resolved = color.resolve(in: environment)
             let key = BrushRasterKey(path: path, shape: ObjectIdentifier(tip.shape),
                                      grain: ObjectIdentifier(tip.grain), color: resolved,
                                      parameters: [strength, Double(scale), style.isEOFilled ? 1 : 0,
                                                   style.isAntialiased ? 1 : 0] + fillStyle.cacheParameters)
-            CachedBrushCanvas(key: key) { rasterContent(path: path, color: Color(resolved)) }
+            CachedBrushCanvas(key: key) { rasterContent(path: path, color: Color(resolved), outset: outset) }
+                .frame(width: geometry.size.width + 2 * outset,
+                       height: geometry.size.height + 2 * outset)
+                .offset(x: -outset, y: -outset)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 
-    private func rasterContent(path: Path, color: Color) -> some View {
+    private func rasterContent(path: Path, color: Color, outset: CGFloat) -> some View {
         Canvas { context, size in
             let bounds = CGRect(origin: .zero, size: size)
             guard size.width.isFinite, size.height.isFinite,
                   size.width > 0, size.height > 0 else { return }
+            if case let .crayon(grainSize, seed) = fillStyle, strength > 0 {
+                if let image = CrayonMarks.image(path: path, size: size,
+                                                displayScale: environment.displayScale,
+                                                strength: strength, grainSize: grainSize,
+                                                seed: seed, style: style, outset: outset) {
+                    var grain = context.resolve(Image(decorative: image, scale: 1))
+                    grain.shading = .color(color)
+                    context.draw(grain, in: bounds)
+                }
+                return
+            }
             context.clip(to: path, style: style)
             if strength > 0 {
                 switch fillStyle {
@@ -86,11 +107,7 @@ private struct BrushFill<S: Shape>: View {
                             }
                         }
                     }
-                case let .crayon(grainSize, seed):
-                    context.clipToLayer { mask in
-                        CrayonMarks.draw(in: &mask, path: path, size: size, strength: strength,
-                                         grainSize: grainSize, seed: seed)
-                    }
+                case .crayon: break
                 }
             }
             context.fill(Path(bounds), with: .color(color))

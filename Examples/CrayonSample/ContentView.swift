@@ -26,10 +26,6 @@ struct ContentView: View {
                             RoundedRectangle(cornerRadius: 28)
                                 .brushFill(color: color, textureStrength: strength,
                                            fillStyle: .crayon(grainSize: grainSize, seed: 7))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 28)
-                                        .brushStroke(.monoline, color: .indigo, width: 3)
-                                }
                                 .frame(width: 180, height: 125)
                         }
 

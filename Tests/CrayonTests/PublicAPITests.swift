@@ -57,8 +57,44 @@ final class PublicAPITests: XCTestCase {
             return true
         }
         XCTAssertTrue(drawn)
-        let alphas = stride(from: 3, to: pixels.count, by: 4).map { pixels[$0] }
+        let alphas = (10..<70).flatMap { y in (10..<70).map { x in pixels[(y * 80 + x) * 4 + 3] } }
         XCTAssertGreaterThan(alphas.max() ?? 0, alphas.min() ?? 255)
-        XCTAssertGreaterThan(alphas.min() ?? 0, 0)
+        XCTAssertGreaterThan(alphas.max() ?? 0, 230)
+        XCTAssertLessThan(alphas.min() ?? 255, 100)
     }
+
+    @MainActor
+    func testCrayonBoundaryAndShapeOrientation() {
+        let triangle = Path { path in
+            path.move(to: .zero)
+            path.addLine(to: CGPoint(x: 80, y: 0))
+            path.addLine(to: CGPoint(x: 0, y: 80))
+            path.closeSubpath()
+        }
+        let renderer = ImageRenderer(content: triangle
+            .brushFill(color: .red.opacity(0.5), textureStrength: 1,
+                       fillStyle: .crayon(seed: 7))
+            .frame(width: 80, height: 80).padding(10))
+        guard let image = renderer.cgImage else { return XCTFail("Crayon did not render") }
+        var pixels = [UInt8](repeating: 0, count: 100 * 100 * 4)
+        let drawn = pixels.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: 100, height: 100,
+                                          bitsPerComponent: 8, bytesPerRow: 400,
+                                          space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            context.draw(image, in: CGRect(x: 0, y: 0, width: 100, height: 100))
+            return true
+        }
+        XCTAssertTrue(drawn)
+        func alpha(_ x: Int, _ y: Int) -> UInt8 { pixels[(y * 100 + x) * 4 + 3] }
+        XCTAssertGreaterThan(alpha(25, 25), 80, "The upper-left interior must keep its orientation")
+        XCTAssertGreaterThan(alpha(60, 20), 80, "The top edge must remain at the top")
+        XCTAssertEqual(alpha(40, 80), 0, "The silhouette must not flip vertically")
+        XCTAssertEqual(alpha(75, 75), 0, "The opposite corner must remain empty")
+        let outside = (20..<60).flatMap { x in (6..<10).map { y in alpha(x, y) } }
+        XCTAssertGreaterThan(outside.max() ?? 0, 0, "Rough pigment must extend beyond the original edge")
+        let alphas = stride(from: 3, to: pixels.count, by: 4).map { pixels[$0] }
+        XCTAssertLessThanOrEqual(alphas.max() ?? 255, 128, "Passes must preserve the tint's opacity")
+    }
+
 }

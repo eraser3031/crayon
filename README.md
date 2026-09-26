@@ -62,6 +62,7 @@ struct Drawing: View {
 
 - `Path.brushStroke`와 `Shape.brushStroke`: 경로를 따라 브러시 팁을 찍습니다. `width`는 pt 단위이며 `spacing`, `flow`, `grainScale`을 조절할 수 있습니다.
 - `Shape.brushFill`: `fillStyle: .grain`(기본값)은 준비된 브러시 그레인, `.crayon`은 종이 틈이 비치는 크레파스 질감을 사용합니다. `textureStrength` 0은 단색, 1은 질감의 전체 대비를 보여 줍니다.
+- `.crayon`은 고정된 종이 요철 위에 세 번의 왁스 칠이 쌓이는 간단한 모델입니다. 압력이 닿지 않는 홈이 빈틈으로 남고, 대각선 결에는 칠의 농도 차이가 나타납니다. 경계는 별도 외곽선 없이 원래 도형 안팎으로 거칠어집니다. 레이아웃 크기는 유지하며, 돌출되는 부분은 `grainSize × textureStrength × 5 + 1`pt 이내입니다. 부모에 `.clipped()`를 적용하면 이 부분이 잘릴 수 있습니다.
 - `.grain`에서는 전달한 `BrushTip`의 그레인을 사용합니다. `.crayon`은 절차적으로 만든 자국을 사용하므로 팁을 생략할 수 있습니다. 별도 `style: FillStyle` 인자는 SwiftUI의 채우기 규칙을 지정합니다.
 - `View.boiling`: 세 가지 고정 변형을 순환합니다. 동작 줄이기 설정, 비활성 장면, 화면에서 사라진 뷰에서는 애니메이션을 중지합니다. 배경이나 글자까지 흔들리지 않도록 장식 뷰에 적용하세요.
 - 선은 경계 중앙에 그려집니다. 상위 뷰의 clipping은 바깥쪽 획이나 입자를 자를 수 있습니다.
