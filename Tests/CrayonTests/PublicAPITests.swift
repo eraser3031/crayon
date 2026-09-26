@@ -11,6 +11,7 @@ final class PublicAPITests: XCTestCase {
         // Ordinary import verifies every demo API is available outside the module.
         _ = shape.brushStroke(tip, color: .blue, width: 2).boiling()
         _ = shape.brushFill(tip, color: .red)
+        _ = shape.crayonFill(.yellow, textureStrength: 0.9, grainSize: 1.2, seed: 42)
         _ = Path(CGRect(x: 0, y: 0, width: 40, height: 40)).brushStroke(tip)
         _ = Color.blue.texturing(in: shape, pattern: pattern)
         XCTAssertFalse(shape.path(in: CGRect(x: 0, y: 0, width: 40, height: 40)).isEmpty)
@@ -35,5 +36,27 @@ final class PublicAPITests: XCTestCase {
                 return XCTFail("Unexpected error: \(error)")
             }
         }
+    }
+
+    @MainActor
+    func testCrayonFillLeavesPaperGaps() {
+        let renderer = ImageRenderer(content: Rectangle()
+            .crayonFill(.yellow, textureStrength: 1, seed: 7)
+            .frame(width: 80, height: 80))
+        renderer.scale = 1
+        guard let image = renderer.cgImage else { return XCTFail("Crayon fill did not render") }
+        var pixels = [UInt8](repeating: 0, count: 80 * 80 * 4)
+        let drawn = pixels.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: 80, height: 80,
+                                          bitsPerComponent: 8, bytesPerRow: 80 * 4,
+                                          space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            context.draw(image, in: CGRect(x: 0, y: 0, width: 80, height: 80))
+            return true
+        }
+        XCTAssertTrue(drawn)
+        let alphas = stride(from: 3, to: pixels.count, by: 4).map { pixels[$0] }
+        XCTAssertGreaterThan(alphas.max() ?? 0, alphas.min() ?? 255)
+        XCTAssertGreaterThan(alphas.min() ?? 0, 0)
     }
 }

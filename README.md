@@ -44,10 +44,17 @@ struct Drawing: View {
 
 - `Path.brushStroke`와 `Shape.brushStroke`: 경로를 따라 브러시 팁을 찍습니다. `width`는 pt 단위이며 `spacing`, `flow`, `grainScale`을 조절할 수 있습니다.
 - `Shape.brushFill`: 도형 내부를 브러시 그레인으로 채웁니다. `textureStrength` 0은 단색, 1은 그레인의 투명 틈을 그대로 유지합니다.
+- `Shape.crayonFill`: 짧은 사선 자국을 겹쳐 종이의 흰 틈이 비치는 크레파스 칠 질감을 만듭니다. `textureStrength` 0은 단색, `grainSize`는 자국의 크기(pt 기준), `seed`는 고정된 패턴의 변형입니다.
 - `View.boiling`: 세 가지 고정 변형을 순환합니다. 동작 줄이기 설정, 비활성 장면, 화면에서 사라진 뷰에서는 애니메이션을 중지합니다. 배경이나 글자까지 흔들리지 않도록 장식 뷰에 적용하세요.
 - 선은 경계 중앙에 그려집니다. 상위 뷰의 clipping은 바깥쪽 획이나 입자를 자를 수 있습니다.
 
 `BrushTip.monoline`은 외부 리소스가 없는 기본 브러시입니다. 질감 이미지는 호출 측에서 한 번 로드하여 재사용합니다.
+
+```swift
+RoundedRectangle(cornerRadius: 20)
+    .crayonFill(.yellow, textureStrength: 0.9, grainSize: 1, seed: 7)
+    .frame(width: 220, height: 140)
+```
 
 ```swift
 let tip = try BrushTip(shapeURL: shapeURL, grainURL: grainURL)
