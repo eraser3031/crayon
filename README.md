@@ -1,18 +1,20 @@
 # Crayon
 
-SwiftUI에서 크레파스로 칠한 면, 브러시 선, 거친 가장자리와 보일링 애니메이션을 그리는 Swift Package입니다.
-외부 이미지 없이 크레파스 질감을 만들거나, 직접 준비한 브러시 팁과 그레인을 사용할 수 있습니다.
+[EN](README.md) · [KR](README.ko.md) · [JP](README.ja.md) · [CN](README.zh-CN.md)
 
-![크레파스 채우기: 은은한 대각선 결, 종이의 빈틈, 거친 경계](Documentation/Images/crayon.png)
+A Swift package for crayon fills, brush strokes, rough edges, and line-boil animation in SwiftUI.
+Create crayon textures without external images, or supply your own brush tip and grain.
 
-- **지원 환경:** iOS 17+ · macOS 14+ · Swift tools 5.9+
-- **제품 / import:** `Crayon`
-- SwiftUI 기반이며 외부 패키지 의존성이 없습니다.
+![Crayon fill with subtle diagonal layers, paper gaps, and rough edges](Documentation/Images/crayon.png)
 
-## 빠르게 시작하기
+- **Requirements:** iOS 17+ · macOS 14+ · Swift tools 5.9+
+- **Product / import:** `Crayon`
+- Built on SwiftUI with no external package dependencies.
 
-Xcode의 **Add Package Dependencies → Add Local**에서 이 저장소를 선택하고,
-앱 타깃에 `Crayon` 제품을 추가하세요.
+## Quick start
+
+In Xcode, choose **Add Package Dependencies → Add Local**, select this repository,
+and add the `Crayon` product to your app target.
 
 ```swift
 import SwiftUI
@@ -32,57 +34,57 @@ struct Drawing: View {
 }
 ```
 
-다른 Swift Package에서 로컬 의존성으로 연결할 수도 있습니다.
+You can also add it as a local dependency in another Swift package.
 
 ```swift
-// Package.swift의 dependencies
+// Package.swift dependencies
 .package(path: "../crayon")
 
-// 사용하는 target의 dependencies
+// Dependencies of the consuming target
 .product(name: "Crayon", package: "crayon")
 ```
 
-## 무엇을 그릴 수 있나요?
+## What can you draw?
 
-| API | 역할 |
+| API | Purpose |
 | --- | --- |
-| `Shape.brushFill(..., fillStyle: .grain)` | 준비된 브러시 그레인으로 면 채우기. 기본 스타일입니다. |
-| `Shape.brushFill(..., fillStyle: .crayon(...))` | 왁스가 겹쳐진 결, 종이 틈, 거친 경계가 있는 크레파스 채우기 |
-| `Shape.brushStroke` / `Path.brushStroke` | 경로를 따라 브러시 팁을 찍어 선 그리기 |
-| `Color.texturing` | 단색 도형의 경계를 거칠게 만들기 |
-| `View.boiling` | 손그림처럼 조금씩 흔들리는 애니메이션 |
+| `Shape.brushFill(..., fillStyle: .grain)` | Fill with a prepared brush grain. The default style. |
+| `Shape.brushFill(..., fillStyle: .crayon(...))` | Crayon fill with layered wax, paper gaps, and rough edges |
+| `Shape.brushStroke` / `Path.brushStroke` | Draw strokes by stamping a brush tip along a path |
+| `Color.texturing` | Roughen the edges of a solid-color shape |
+| `View.boiling` | Add a subtle, hand-drawn wobble |
 
-![동일한 brushFill의 grain과 crayon 스타일, 그리고 brushStroke 비교](Documentation/Images/drawing-styles.png)
+![grain and crayon styles using the same brushFill API, alongside brushStroke](Documentation/Images/drawing-styles.png)
 
-미리보기는 이 저장소의 공개 API로 렌더링한 이미지입니다. 기본 `.monoline` 팁을 사용했으며,
-사용자 지정 팁을 전달하면 `.grain`과 브러시 선의 모양이 달라집니다.
+These previews are rendered with this repository's public API and the default `.monoline` tip.
+Custom tips change the appearance of `.grain` fills and brush strokes.
 
-## 크레파스 채우기
+## Crayon fills
 
-크레파스도 **같은 `brushFill` API**에서 `fillStyle`을 선택합니다.
-별도 크레파스 모디파이어나 텍스처 이미지가 필요하지 않습니다.
+Select `fillStyle` on **the same `brushFill` API**.
+No separate crayon modifier or texture image is required.
 
-종이의 고정된 요철 위에 세 번의 왁스 칠이 쌓이는 과정을 단순화한 모델입니다.
-압력이 닿지 않는 홈에는 종이가 비치고, 겹쳐 칠한 부분에는 은은한 대각선 농도 차이가 남습니다.
-경계도 칠이 끝나는 위치와 작은 입자의 변화를 반영하며, 외곽선을 따로 그리지 않습니다.
+The renderer approximates three wax passes accumulating over fixed paper relief.
+Paper shows through grooves the pressure does not reach; overlapping passes leave subtle diagonal variations in density.
+The boundary reflects uneven stopping positions and fine grain, without a separate outline.
 
-![크레파스 질감 강도 0, 0.5, 1 비교](Documentation/Images/crayon-strength.png)
+![Crayon texture strength at 0, 0.5, and 1](Documentation/Images/crayon-strength.png)
 
-| 설정 | 기본값 | 설명 |
+| Setting | Default | Description |
 | --- | --- | --- |
-| `color` | `.primary` | 칠할 색. 색의 불투명도를 보존합니다. |
-| `textureStrength` | `0.8` | `0...1`. 0은 단색, 1은 종이 틈과 거친 경계가 가장 잘 드러납니다. |
-| `.crayon(grainSize:)` | `1` | `0.5...4`. 종이 입자와 칠 자국의 공간적 크기를 조절합니다. |
-| `.crayon(seed:)` | `0` | 같은 크기와 설정에서 같은 패턴을 재현하는 값입니다. |
+| `color` | `.primary` | Fill color. Its opacity is preserved. |
+| `textureStrength` | `0.8` | `0...1`. 0 is solid; 1 reveals the full paper gaps and rough edges. |
+| `.crayon(grainSize:)` | `1` | `0.5...4`. Controls the spatial size of paper grain and wax marks. |
+| `.crayon(seed:)` | `0` | Reproduces the same pattern at the same size and settings. |
 
-`grainScale`과 `BrushTip`은 `.grain` 스타일용입니다.
-`fillStyle`은 질감 선택이고, 별도의 `style: FillStyle`은 SwiftUI의 even-odd 채우기 규칙과 안티앨리어싱 설정입니다.
+`grainScale` and `BrushTip` apply to the `.grain` style.
+`fillStyle` selects the texture; the separate `style: FillStyle` controls SwiftUI's even-odd fill rule and antialiasing.
 
-레이아웃 크기는 유지하지만 크레파스 입자는 원래 경계 밖으로 조금 돌출됩니다.
-렌더링 여유 공간은 `ceil(5 × grainSize × textureStrength) + 1`pt이며,
-부모의 `.clipped()`는 이 입자를 자를 수 있습니다. 강도 0에서는 추가 돌출이 없습니다.
+Layout dimensions stay unchanged, but crayon pigment can extend slightly beyond the original boundary.
+The rendering margin is `ceil(5 × grainSize × textureStrength) + 1` pt.
+An ancestor's `.clipped()` can trim this pigment. At strength 0, there is no extra overhang.
 
-## 브러시 채우기와 선
+## Brush fills and strokes
 
 ```swift
 RoundedRectangle(cornerRadius: 24)
@@ -94,28 +96,28 @@ RoundedRectangle(cornerRadius: 24)
     .frame(width: 220, height: 140)
 ```
 
-`brushStroke`는 `width`(pt), `spacing`, `flow`, `grainScale`을 조절할 수 있습니다.
-선은 도형 경계의 중앙에 그려지므로, 바깥쪽 획을 보이려면 주변 여백을 확보하세요.
-`Path`에도 같은 API를 사용할 수 있습니다.
+`brushStroke` exposes `width` (pt), `spacing`, `flow`, and `grainScale`.
+Strokes are centered on the shape boundary, so leave room for their outer half.
+The same API is available on `Path`.
 
-### 사용자 지정 브러시
+### Custom brushes
 
 ```swift
-// 준비된 파일 URL에서 한 번 로드한 뒤 재사용합니다.
+// Load once from your image file URLs, then reuse.
 let tip = try BrushTip(shapeURL: shapeURL, grainURL: grainURL)
 
-// SwiftUI 뷰 안에서
+// Inside a SwiftUI view
 Circle()
     .brushFill(tip, color: .blue, grainScale: 240)
     .frame(width: 160, height: 160)
 ```
 
-`BrushTip.monoline`은 외부 리소스가 없는 기본 브러시입니다.
-이미지 로더는 검은 자국 / 흰 배경 이미지를 알파 마스크로 변환하고 팁의 투명 여백을 잘라냅니다.
-입력은 한 변 최대 4096px이며, 읽을 수 없는 이미지는 `BrushTip.LoadError.invalidImage`를 발생시킵니다.
-Procreate 브러시 파일을 직접 해석하지는 않습니다.
+`BrushTip.monoline` is the built-in brush and needs no external resources.
+The image loader converts black marks on white backgrounds into alpha masks and trims transparent tip margins.
+Inputs are limited to 4096 px per side; unreadable images throw `BrushTip.LoadError.invalidImage`.
+Procreate brush files are not parsed directly.
 
-## 가장자리 텍스처
+## Edge textures
 
 ```swift
 Color.blue.texturing(
@@ -128,11 +130,11 @@ Color.blue.texturing(
 .frame(width: 220, height: 140)
 ```
 
-단색 도형용 효과입니다. `TexturingShape`는 사각형, 둥근 사각형, 캡슐, 원을 지원하며
-일반 `Shape`로도 사용할 수 있습니다. 둥근 모서리는 circular 방식이고,
-같은 seed와 좌표는 같은 패턴을 만듭니다.
+This effect is for solid-color shapes. `TexturingShape` supports rectangles, rounded rectangles, capsules, and circles,
+and can also be used as a regular `Shape`. Rounded corners use the circular style.
+The same seed and coordinates produce the same pattern.
 
-## 보일링 애니메이션
+## Line-boil animation
 
 ```swift
 Circle()
@@ -141,23 +143,22 @@ Circle()
     .frame(width: 120, height: 120)
 ```
 
-세 가지 고정 변형을 순환합니다. 배경이나 글자까지 흔들리지 않도록 장식 뷰에 적용하세요.
-동작 줄이기 설정, 비활성 장면, 화면에서 사라진 뷰에서는 애니메이션을 중지합니다.
-정적인 README 이미지에서는 움직임을 볼 수 없으므로 샘플 앱에서 확인하세요.
+Cycles through three fixed distortions. Apply it to decorative views so backgrounds and text remain steady.
+Animation stops when Reduce Motion is enabled, the scene is inactive, or the view disappears.
+Use the sample app to see motion; README images are static.
 
-## 샘플 앱 실행
+## Run the sample app
 
-[CrayonSample.xcodeproj](Examples/CrayonSample/CrayonSample.xcodeproj)을 Xcode에서 열고
-`CrayonSample` 스킴과 iOS Simulator 또는 My Mac을 선택해 실행하세요.
-저장소의 패키지를 로컬로 참조하므로 별도 설치는 필요하지 않습니다.
+Open [CrayonSample.xcodeproj](Examples/CrayonSample/CrayonSample.xcodeproj) in Xcode,
+select the `CrayonSample` scheme, and run on an iOS Simulator or My Mac.
+It references this repository's package locally, so no separate installation is needed.
 
-샘플에서는 색, 질감 강도, 크레파스 자국 크기를 바꾸고
-크레파스 채우기 · 기본 그레인 · 브러시 선 · 가장자리 텍스처를 비교할 수 있습니다.
-보일링을 켜고 끄는 토글도 있습니다.
+Change the color, texture strength, and crayon mark size to compare crayon fills, default grain,
+brush strokes, and edge textures. A toggle turns line-boil animation on and off.
 
-같은 로컬 패키지를 다른 프로젝트에서 이미 열었다면 Xcode에
-`already opened from another project or workspace` 오류가 표시될 수 있습니다.
-해당 프로젝트 창을 닫은 뒤 샘플을 다시 열어 주세요.
+If another open project uses the same local package, Xcode may report
+`already opened from another project or workspace`.
+Close that project window and reopen the sample.
 
 ```sh
 xcodebuild -project Examples/CrayonSample/CrayonSample.xcodeproj \
@@ -165,48 +166,48 @@ xcodebuild -project Examples/CrayonSample/CrayonSample.xcodeproj \
   build CODE_SIGNING_ALLOWED=NO
 ```
 
-## 개발과 검증
+## Development and verification
 
 ```text
 Sources/Crayon/
-  BrushStroke/        # 선·면 공개 API, 샘플링, 크레파스 렌더러, 래스터 캐시
-  Texturing/          # 가장자리 텍스처 API와 렌더러
-  Boiling/            # 보일링 View modifier
+  BrushStroke/        # Stroke/fill API, sampling, crayon renderer, raster cache
+  Texturing/          # Edge texture API and renderer
+  Boiling/            # Boiling View modifier
   Shaders/            # EdgeTexture.metal, LineBoil.metal
-Examples/CrayonSample/ # iOS / macOS 샘플 앱
-Tests/CrayonTests/     # 기하·이미지 로딩·공개 API·렌더링 회귀 테스트
-Tools/PreviewGenerator/ # README 이미지 생성 도구
-Documentation/Images/ # 생성된 미리보기 PNG
+Examples/CrayonSample/ # iOS / macOS sample app
+Tests/CrayonTests/     # Geometry, image loading, public API and rendering tests
+Tools/PreviewGenerator/ # README preview generator
+Documentation/Images/ # Generated preview PNGs
 ```
 
-Metal 컴파일이 가능한 Xcode / Metal Toolchain이 필요합니다.
-셰이더는 패키지 번들의 `default.metallib`로 컴파일되고 `ShaderLibrary.bundle(.module)`로 로드됩니다.
-앱의 기본 셰이더 라이브러리나 `Bundle.main`에 의존하지 않습니다.
+Xcode / a Metal Toolchain capable of compiling Metal is required.
+Shaders compile into the package bundle's `default.metallib` and load through `ShaderLibrary.bundle(.module)`.
+They do not depend on the app's default shader library or `Bundle.main`.
 
 ```sh
 swift build
 swift test
 ```
 
-SwiftPM에서 Metal Toolchain을 찾지 못하는 환경에서는 다음 명령으로 Swift 코드의 회귀 테스트를 실행할 수 있습니다.
-native 빌드 시스템은 Metal 소스를 복사만 하므로, 위의 Xcode 샘플 빌드로 셰이더 컴파일도 확인해야 합니다.
+If SwiftPM cannot find the Metal Toolchain, run the Swift regression tests with the command below.
+The native build system only copies Metal sources, so also use the Xcode sample build above to verify shader compilation.
 
 ```sh
 swift test --build-system native
 ```
 
-최근 구현 검증: 회귀 테스트 **11개 통과**, **iOS Simulator 샘플 앱 빌드 성공**.
-실제 효과와 애니메이션은 샘플 앱에서 확인하세요. 루트 패키지는 라이브러리이므로 `swift run` 대상이 없습니다.
+Latest implementation checks: **11 regression tests passed** and **the iOS Simulator sample app built successfully**.
+Use the sample app to inspect effects and animation. The root package is a library and has no `swift run` target.
 
-### 미리보기 이미지 다시 만들기
+### Regenerate preview images
 
-macOS에서 저장소 루트를 기준으로 실행합니다. 실제 `Crayon` 공개 API를 SwiftUI `ImageRenderer`로
-2배 해상도의 PNG로 저장합니다. 고정 seed와 밝은 색상 모드를 사용합니다.
+Run from the repository root on macOS. The tool renders the public `Crayon` API with SwiftUI `ImageRenderer`
+into 2× PNGs using fixed seeds and light mode.
 
 ```sh
 swift run --package-path Tools/PreviewGenerator --build-system native \
   PreviewGenerator Documentation/Images
 ```
 
-이 도구는 크레파스, 그레인, 브러시 선의 정적 이미지를 생성합니다.
-Metal 기반 가장자리 효과와 보일링은 샘플 앱에서 확인합니다.
+The generator produces static previews of crayon fills, grain fills, and brush strokes.
+Use the sample app for Metal-based edge effects and line-boil animation.
