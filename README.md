@@ -22,6 +22,21 @@ Xcode의 **Add Package Dependencies → Add Local**에서 이 폴더를 선택�
 
 `turtle`은 형제 폴더 `../crayon`을 로컬 패키지로 참조합니다. 두 저장소를 같은 상위 폴더에 두세요.
 
+## 샘플 앱
+
+[CrayonSample.xcodeproj](Examples/CrayonSample/CrayonSample.xcodeproj)을 Xcode에서 열고
+`CrayonSample` 스킴을 실행하세요. 저장소의 `Crayon` 패키지를 로컬로 참조하며,
+iOS 17 이상과 macOS 14 이상에서 동작합니다. 색상·질감 강도·크레파스 자국 크기를
+바꾸면서 `crayonFill`, `brushFill`, `brushStroke`, 가장자리 텍스처와 보일링을 비교할 수 있습니다.
+
+명령줄 빌드는 다음과 같습니다.
+
+```sh
+xcodebuild -project Examples/CrayonSample/CrayonSample.xcodeproj \
+  -scheme CrayonSample -destination 'generic/platform=iOS Simulator' \
+  build CODE_SIGNING_ALLOWED=NO
+```
+
 ## 선·면·보일링
 
 ```swift
