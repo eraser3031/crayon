@@ -22,10 +22,10 @@ struct ContentView: View {
                     controls
 
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16)], spacing: 16) {
-                        SampleCard(title: "크레파스 칠", subtitle: "crayonFill · 종이 틈과 사선 자국") {
+                        SampleCard(title: "크레파스 칠", subtitle: "brushFill · .crayon 스타일") {
                             RoundedRectangle(cornerRadius: 28)
-                                .crayonFill(color, textureStrength: strength,
-                                            grainSize: grainSize, seed: 7)
+                                .brushFill(color: color, textureStrength: strength,
+                                           fillStyle: .crayon(grainSize: grainSize, seed: 7))
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 28)
                                         .brushStroke(.monoline, color: .indigo, width: 3)

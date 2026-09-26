@@ -27,7 +27,7 @@ Xcode의 **Add Package Dependencies → Add Local**에서 이 폴더를 선택�
 [CrayonSample.xcodeproj](Examples/CrayonSample/CrayonSample.xcodeproj)을 Xcode에서 열고
 `CrayonSample` 스킴을 실행하세요. 저장소의 `Crayon` 패키지를 로컬로 참조하며,
 iOS 17 이상과 macOS 14 이상에서 동작합니다. 색상·질감 강도·크레파스 자국 크기를
-바꾸면서 `crayonFill`, `brushFill`, `brushStroke`, 가장자리 텍스처와 보일링을 비교할 수 있습니다.
+바꾸면서 `brushFill`의 그레인·크레파스 스타일, `brushStroke`, 가장자리 텍스처와 보일링을 비교할 수 있습니다.
 Xcode에서 같은 로컬 패키지를 쓰는 `turtle` 프로젝트를 동시에 열면
 `already opened from another project or workspace` 오류가 납니다. 샘플 앱을
 Xcode에서 실행할 때는 다른 프로젝트 창을 닫거나 아래 명령줄 빌드를 사용하세요.
@@ -61,8 +61,8 @@ struct Drawing: View {
 ```
 
 - `Path.brushStroke`와 `Shape.brushStroke`: 경로를 따라 브러시 팁을 찍습니다. `width`는 pt 단위이며 `spacing`, `flow`, `grainScale`을 조절할 수 있습니다.
-- `Shape.brushFill`: 도형 내부를 브러시 그레인으로 채웁니다. `textureStrength` 0은 단색, 1은 그레인의 투명 틈을 그대로 유지합니다.
-- `Shape.crayonFill`: 짧은 사선 자국을 겹쳐 종이의 흰 틈이 비치는 크레파스 칠 질감을 만듭니다. `textureStrength` 0은 단색, `grainSize`는 자국의 크기(pt 기준), `seed`는 고정된 패턴의 변형입니다.
+- `Shape.brushFill`: `fillStyle: .grain`(기본값)은 준비된 브러시 그레인, `.crayon`은 종이 틈이 비치는 크레파스 질감을 사용합니다. `textureStrength` 0은 단색, 1은 질감의 전체 대비를 보여 줍니다.
+- `.grain`에서는 전달한 `BrushTip`의 그레인을 사용합니다. `.crayon`은 절차적으로 만든 자국을 사용하므로 팁을 생략할 수 있습니다. 별도 `style: FillStyle` 인자는 SwiftUI의 채우기 규칙을 지정합니다.
 - `View.boiling`: 세 가지 고정 변형을 순환합니다. 동작 줄이기 설정, 비활성 장면, 화면에서 사라진 뷰에서는 애니메이션을 중지합니다. 배경이나 글자까지 흔들리지 않도록 장식 뷰에 적용하세요.
 - 선은 경계 중앙에 그려집니다. 상위 뷰의 clipping은 바깥쪽 획이나 입자를 자를 수 있습니다.
 
@@ -70,7 +70,8 @@ struct Drawing: View {
 
 ```swift
 RoundedRectangle(cornerRadius: 20)
-    .crayonFill(.yellow, textureStrength: 0.9, grainSize: 1, seed: 7)
+    .brushFill(color: .yellow, textureStrength: 0.9,
+               fillStyle: .crayon(grainSize: 1, seed: 7))
     .frame(width: 220, height: 140)
 ```
 

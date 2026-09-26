@@ -11,7 +11,8 @@ final class PublicAPITests: XCTestCase {
         // Ordinary import verifies every demo API is available outside the module.
         _ = shape.brushStroke(tip, color: .blue, width: 2).boiling()
         _ = shape.brushFill(tip, color: .red)
-        _ = shape.crayonFill(.yellow, textureStrength: 0.9, grainSize: 1.2, seed: 42)
+        _ = shape.brushFill(color: .yellow, textureStrength: 0.9,
+                            fillStyle: .crayon(grainSize: 1.2, seed: 42))
         _ = Path(CGRect(x: 0, y: 0, width: 40, height: 40)).brushStroke(tip)
         _ = Color.blue.texturing(in: shape, pattern: pattern)
         XCTAssertFalse(shape.path(in: CGRect(x: 0, y: 0, width: 40, height: 40)).isEmpty)
@@ -39,9 +40,10 @@ final class PublicAPITests: XCTestCase {
     }
 
     @MainActor
-    func testCrayonFillLeavesPaperGaps() {
+    func testCrayonBrushFillLeavesPaperGaps() {
         let renderer = ImageRenderer(content: Rectangle()
-            .crayonFill(.yellow, textureStrength: 1, seed: 7)
+            .brushFill(color: .yellow, textureStrength: 1,
+                        fillStyle: .crayon(seed: 7))
             .frame(width: 80, height: 80))
         renderer.scale = 1
         guard let image = renderer.cgImage else { return XCTFail("Crayon fill did not render") }
