@@ -28,6 +28,9 @@ Xcode의 **Add Package Dependencies → Add Local**에서 이 폴더를 선택�
 `CrayonSample` 스킴을 실행하세요. 저장소의 `Crayon` 패키지를 로컬로 참조하며,
 iOS 17 이상과 macOS 14 이상에서 동작합니다. 색상·질감 강도·크레파스 자국 크기를
 바꾸면서 `crayonFill`, `brushFill`, `brushStroke`, 가장자리 텍스처와 보일링을 비교할 수 있습니다.
+Xcode에서 같은 로컬 패키지를 쓰는 `turtle` 프로젝트를 동시에 열면
+`already opened from another project or workspace` 오류가 납니다. 샘플 앱을
+Xcode에서 실행할 때는 다른 프로젝트 창을 닫거나 아래 명령줄 빌드를 사용하세요.
 
 명령줄 빌드는 다음과 같습니다.
 
