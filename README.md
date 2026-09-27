@@ -2,6 +2,8 @@
 
 [EN](README.md) · [KR](README.ko.md) · [JP](README.ja.md) · [CN](README.zh-CN.md)
 
+AI-friendly package guide: [llms.txt](https://github.com/eraser3031/crayon/blob/main/llms.txt)
+
 A Swift package for crayon fills, brush strokes, rough edges, and line-boil animation in SwiftUI.
 Create crayon textures without external images, or supply your own brush tip and grain.
 
