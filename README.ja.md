@@ -13,7 +13,8 @@ SwiftUI でクレヨンの塗り、ブラシ線、ざらついた輪郭、ボイ
 
 ## クイックスタート
 
-Xcode の **Add Package Dependencies → Add Local** でこのリポジトリを選び、
+Xcode の **Add Package Dependencies** に
+`https://github.com/eraser3031/crayon.git` を入力し、バージョン **0.1.0** を選んで、
 アプリのターゲットに `Crayon` 製品を追加してください。
 
 ```swift
@@ -34,15 +35,17 @@ struct Drawing: View {
 }
 ```
 
-別の Swift Package からローカル依存として追加することもできます。
+別の Swift Package からも依存関係として追加できます。
 
 ```swift
 // Package.swift の dependencies
-.package(path: "../crayon")
+.package(url: "https://github.com/eraser3031/crayon.git", from: "0.1.0")
 
 // 利用するターゲットの dependencies
 .product(name: "Crayon", package: "crayon")
 ```
+
+ローカル開発では Xcode の **Add Local** または `.package(path: "../crayon")` を使用してください。
 
 ## 描けるもの
 

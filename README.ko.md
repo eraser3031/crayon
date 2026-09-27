@@ -13,7 +13,8 @@ SwiftUI에서 크레파스로 칠한 면, 브러시 선, 거친 가장자리와 
 
 ## 빠르게 시작하기
 
-Xcode의 **Add Package Dependencies → Add Local**에서 이 저장소를 선택하고,
+Xcode의 **Add Package Dependencies**에서
+`https://github.com/eraser3031/crayon.git`을 입력하고 버전 **0.1.0**을 선택한 뒤,
 앱 타깃에 `Crayon` 제품을 추가하세요.
 
 ```swift
@@ -34,15 +35,17 @@ struct Drawing: View {
 }
 ```
 
-다른 Swift Package에서 로컬 의존성으로 연결할 수도 있습니다.
+다른 Swift Package에서도 의존성으로 추가할 수 있습니다.
 
 ```swift
 // Package.swift의 dependencies
-.package(path: "../crayon")
+.package(url: "https://github.com/eraser3031/crayon.git", from: "0.1.0")
 
 // 사용하는 target의 dependencies
 .product(name: "Crayon", package: "crayon")
 ```
+
+로컬 개발 시에는 Xcode의 **Add Local** 또는 `.package(path: "../crayon")`을 사용하세요.
 
 ## 무엇을 그릴 수 있나요?
 

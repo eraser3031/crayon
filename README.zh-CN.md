@@ -13,7 +13,8 @@
 
 ## 快速开始
 
-在 Xcode 中选择 **Add Package Dependencies → Add Local**，选中此仓库，
+在 Xcode 中选择 **Add Package Dependencies**，输入
+`https://github.com/eraser3031/crayon.git`，选择版本 **0.1.0**，
 然后将 `Crayon` 产品添加到应用 target。
 
 ```swift
@@ -34,15 +35,17 @@ struct Drawing: View {
 }
 ```
 
-也可以在其他 Swift Package 中将其添加为本地依赖。
+也可以在其他 Swift Package 中将其添加为依赖。
 
 ```swift
 // Package.swift 中的 dependencies
-.package(path: "../crayon")
+.package(url: "https://github.com/eraser3031/crayon.git", from: "0.1.0")
 
 // 使用方 target 的 dependencies
 .product(name: "Crayon", package: "crayon")
 ```
+
+本地开发时可使用 Xcode 的 **Add Local** 或 `.package(path: "../crayon")`。
 
 ## 可以绘制什么？
 

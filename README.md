@@ -13,8 +13,9 @@ Create crayon textures without external images, or supply your own brush tip and
 
 ## Quick start
 
-In Xcode, choose **Add Package Dependencies → Add Local**, select this repository,
-and add the `Crayon` product to your app target.
+In Xcode, choose **Add Package Dependencies**, enter
+`https://github.com/eraser3031/crayon.git`, select version **0.1.0**, and add
+the `Crayon` product to your app target.
 
 ```swift
 import SwiftUI
@@ -34,15 +35,18 @@ struct Drawing: View {
 }
 ```
 
-You can also add it as a local dependency in another Swift package.
+You can also add it to another Swift package.
 
 ```swift
 // Package.swift dependencies
-.package(path: "../crayon")
+.package(url: "https://github.com/eraser3031/crayon.git", from: "0.1.0")
 
 // Dependencies of the consuming target
 .product(name: "Crayon", package: "crayon")
 ```
+
+For local development, use Xcode's **Add Local** option or
+`.package(path: "../crayon")` instead.
 
 ## What can you draw?
 
