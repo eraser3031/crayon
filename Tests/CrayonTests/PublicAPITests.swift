@@ -43,7 +43,7 @@ final class PublicAPITests: XCTestCase {
     func testCrayonBrushFillLeavesPaperGaps() {
         let renderer = ImageRenderer(content: Rectangle()
             .brushFill(color: .yellow, textureStrength: 1,
-                        fillStyle: .crayon(seed: 7))
+                        fillStyle: .crayon(seed: 7), renderingMode: .synchronous)
             .frame(width: 80, height: 80))
         renderer.scale = 1
         guard let image = renderer.cgImage else { return XCTFail("Crayon fill did not render") }
@@ -73,7 +73,7 @@ final class PublicAPITests: XCTestCase {
         }
         let renderer = ImageRenderer(content: triangle
             .brushFill(color: .red.opacity(0.5), textureStrength: 1,
-                       fillStyle: .crayon(seed: 7))
+                       fillStyle: .crayon(seed: 7), renderingMode: .synchronous)
             .frame(width: 80, height: 80).padding(10))
         guard let image = renderer.cgImage else { return XCTFail("Crayon did not render") }
         var pixels = [UInt8](repeating: 0, count: 100 * 100 * 4)

@@ -24,19 +24,30 @@ public enum BrushFillStyle: Equatable, Sendable {
     }
 }
 
+/// Controls when a crayon fill generates its coverage image.
+/// Use synchronous rendering for one-shot `ImageRenderer` exports.
+public enum BrushFillRenderingMode: Sendable {
+    case asynchronous
+    case synchronous
+}
+
 extension Shape {
     /// Fills this shape with either the prepared tip's grain or a crayon texture.
     /// Strength 0 is solid; 1 shows the selected texture's full paper gaps.
+    /// Crayon coverage is generated off the main actor by default. Use synchronous
+    /// rendering when a one-shot ImageRenderer must capture the finished texture.
     /// `style` is SwiftUI's fill rule; `fillStyle` selects the visible texture.
     @MainActor
     public func brushFill(_ tip: BrushTip = .monoline, color: Color = .primary,
                    textureStrength: Double = 0.8, grainScale: CGFloat = 240,
                    fillStyle: BrushFillStyle = .grain,
+                   renderingMode: BrushFillRenderingMode = .asynchronous,
                    style: FillStyle = FillStyle()) -> some View {
         let strength = textureStrength.isFinite ? min(max(textureStrength, 0), 1) : 0.8
         let scale = grainScale.isFinite ? min(max(grainScale, 16), 2048) : 240
         return BrushFill(shape: self, tip: tip, color: color, strength: strength,
-                         scale: scale, fillStyle: fillStyle.sanitized, style: style)
+                         scale: scale, fillStyle: fillStyle.sanitized,
+                         renderingMode: renderingMode, style: style)
     }
 }
 
@@ -47,6 +58,7 @@ private struct BrushFill<S: Shape>: View {
     let strength: Double
     let scale: CGFloat
     let fillStyle: BrushFillStyle
+    let renderingMode: BrushFillRenderingMode
     let style: FillStyle
     @Environment(\.self) private var environment
 
@@ -65,10 +77,20 @@ private struct BrushFill<S: Shape>: View {
                                      grain: ObjectIdentifier(tip.grain), color: resolved,
                                      parameters: [strength, Double(scale), style.isEOFilled ? 1 : 0,
                                                   style.isAntialiased ? 1 : 0] + fillStyle.cacheParameters)
-            CachedBrushCanvas(key: key) { rasterContent(path: path, color: Color(resolved), outset: outset) }
-                .frame(width: geometry.size.width + 2 * outset,
-                       height: geometry.size.height + 2 * outset)
-                .offset(x: -outset, y: -outset)
+            Group {
+                if case let .crayon(grainSize, seed) = fillStyle,
+                   strength > 0, renderingMode == .asynchronous {
+                    AsyncCrayonCanvas(path: path, color: Color(resolved), strength: strength,
+                                      grainSize: grainSize, seed: seed, style: style, outset: outset)
+                } else {
+                    CachedBrushCanvas(key: key) {
+                        rasterContent(path: path, color: Color(resolved), outset: outset)
+                    }
+                }
+            }
+            .frame(width: geometry.size.width + 2 * outset,
+                   height: geometry.size.height + 2 * outset)
+            .offset(x: -outset, y: -outset)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
@@ -84,9 +106,9 @@ private struct BrushFill<S: Shape>: View {
                                                 displayScale: environment.displayScale,
                                                 strength: strength, grainSize: grainSize,
                                                 seed: seed, style: style, outset: outset) {
-                    var grain = context.resolve(Image(decorative: image, scale: 1))
-                    grain.shading = .color(color)
-                    context.draw(grain, in: bounds)
+                    var coverage = context.resolve(Image(decorative: image, scale: 1))
+                    coverage.shading = .color(color)
+                    context.draw(coverage, in: bounds)
                 }
                 return
             }

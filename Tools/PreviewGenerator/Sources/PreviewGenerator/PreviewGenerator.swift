@@ -19,7 +19,7 @@ struct PreviewGenerator {
                 heading("Crayon", detail: "Wax layers · paper grain · broken edges")
                 RoundedRectangle(cornerRadius: 26)
                     .brushFill(color: yellow, textureStrength: 0.9,
-                               fillStyle: .crayon(seed: 7))
+                               fillStyle: .crayon(seed: 7), renderingMode: .synchronous)
                     .frame(width: 680, height: 270)
             }.padding(36))
         try save("drawing-styles", to: output, content:
@@ -35,7 +35,7 @@ struct PreviewGenerator {
                     VStack(spacing: 20) {
                         RoundedRectangle(cornerRadius: 22)
                             .brushFill(color: blue, textureStrength: 0.9,
-                                       fillStyle: .crayon(seed: 7))
+                                       fillStyle: .crayon(seed: 7), renderingMode: .synchronous)
                             .frame(width: 200, height: 140)
                         label(".crayon", detail: "Procedural wax coverage")
                     }
@@ -58,7 +58,7 @@ struct PreviewGenerator {
                     ForEach([0.0, 0.5, 1.0], id: \.self) { strength in
                         VStack(spacing: 20) {
                             Circle().brushFill(color: pink, textureStrength: strength,
-                                               fillStyle: .crayon(seed: 7))
+                                               fillStyle: .crayon(seed: 7), renderingMode: .synchronous)
                                 .frame(width: 180, height: 180)
                             label(String(format: "%.1f", strength), detail: strength == 0 ? "Solid" : "Paper shows through")
                         }

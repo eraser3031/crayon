@@ -14,7 +14,7 @@ SwiftUI でクレヨンの塗り、ブラシ線、ざらついた輪郭、ボイ
 ## クイックスタート
 
 Xcode の **Add Package Dependencies** に
-`https://github.com/eraser3031/crayon.git` を入力し、バージョン **0.1.0** を選んで、
+`https://github.com/eraser3031/crayon.git` を入力し、バージョン **0.1.1** を選んで、
 アプリのターゲットに `Crayon` 製品を追加してください。
 
 ```swift
@@ -39,7 +39,7 @@ struct Drawing: View {
 
 ```swift
 // Package.swift の dependencies
-.package(url: "https://github.com/eraser3031/crayon.git", from: "0.1.0")
+.package(url: "https://github.com/eraser3031/crayon.git", from: "0.1.1")
 
 // 利用するターゲットの dependencies
 .product(name: "Crayon", package: "crayon")
@@ -79,6 +79,7 @@ struct Drawing: View {
 | `textureStrength` | `0.8` | `0...1`。0 は単色、1 は紙の隙間とざらついた輪郭が最もよく現れます。 |
 | `.crayon(grainSize:)` | `1` | `0.5...4`。紙の粒子と塗り跡の空間的な大きさを調整します。 |
 | `.crayon(seed:)` | `0` | 同じサイズと設定で同じパターンを再現する値です。 |
+| `renderingMode` | `.asynchronous` | 1 回で出力する `ImageRenderer` には `.synchronous` を使います。 |
 
 `grainScale` と `BrushTip` は `.grain` スタイル用です。
 `fillStyle` は質感を選択し、別の `style: FillStyle` は SwiftUI の even-odd 塗りつぶし規則とアンチエイリアスを設定します。
@@ -86,6 +87,8 @@ struct Drawing: View {
 レイアウトのサイズは変わりませんが、クレヨンの粒子は元の輪郭の外に少しはみ出します。
 描画用の余白は `ceil(5 × grainSize × textureStrength) + 1` pt です。
 親ビューの `.clipped()` によって粒子が切れることがあります。強さが 0 のときは追加のはみ出しはありません。
+
+既定では、`.crayon` の質感画像をメインアクターの外で計算します。`textureStrength` やサイズが変わると、新しい画像ができるまで前の質感を表示し、連続した変更では古い計算をキャンセルします。初回は質感ができるまで単色で表示します。大きな塗りは引き続き CPU とメモリを使うため、頻繁な操作中は強さを固定すると負荷を抑えられます。1 回で画像を出力する `ImageRenderer` では、`renderingMode: .synchronous` を指定すると最初の画像に質感が含まれます。このモードはメインアクターで計算します。`.grain` は共通のラスターキャッシュを使い、変更を約 120 ms まとめてからメインアクターで再描画します。
 
 ## ブラシの塗りと線
 

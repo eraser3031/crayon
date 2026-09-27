@@ -16,7 +16,7 @@ Create crayon textures without external images, or supply your own brush tip and
 ## Quick start
 
 In Xcode, choose **Add Package Dependencies**, enter
-`https://github.com/eraser3031/crayon.git`, select version **0.1.0**, and add
+`https://github.com/eraser3031/crayon.git`, select version **0.1.1**, and add
 the `Crayon` product to your app target.
 
 ```swift
@@ -41,7 +41,7 @@ You can also add it to another Swift package.
 
 ```swift
 // Package.swift dependencies
-.package(url: "https://github.com/eraser3031/crayon.git", from: "0.1.0")
+.package(url: "https://github.com/eraser3031/crayon.git", from: "0.1.1")
 
 // Dependencies of the consuming target
 .product(name: "Crayon", package: "crayon")
@@ -82,6 +82,7 @@ The boundary reflects uneven stopping positions and fine grain, without a separa
 | `textureStrength` | `0.8` | `0...1`. 0 is solid; 1 reveals the full paper gaps and rough edges. |
 | `.crayon(grainSize:)` | `1` | `0.5...4`. Controls the spatial size of paper grain and wax marks. |
 | `.crayon(seed:)` | `0` | Reproduces the same pattern at the same size and settings. |
+| `renderingMode` | `.asynchronous` | Use `.synchronous` for a one-shot `ImageRenderer` export. |
 
 `grainScale` and `BrushTip` apply to the `.grain` style.
 `fillStyle` selects the texture; the separate `style: FillStyle` controls SwiftUI's even-odd fill rule and antialiasing.
@@ -89,6 +90,8 @@ The boundary reflects uneven stopping positions and fine grain, without a separa
 Layout dimensions stay unchanged, but crayon pigment can extend slightly beyond the original boundary.
 The rendering margin is `ceil(5 × grainSize × textureStrength) + 1` pt.
 An ancestor's `.clipped()` can trim this pigment. At strength 0, there is no extra overhang.
+
+By default, `.crayon` computes its coverage image off the main actor. When `textureStrength` or geometry changes, the previous texture remains visible until the new image is ready; rapid changes cancel obsolete work. The first appearance shows a solid fill until the texture is ready. Large fills still consume CPU and memory, so keeping texture strength fixed can help during frequent interaction. For a one-shot `ImageRenderer` export, pass `renderingMode: .synchronous` to include the texture in the first image. This mode performs the expensive calculation on the main actor. `.grain` fills use the shared raster cache, which coalesces changes for about 120 ms and also renders on the main actor.
 
 ## Brush fills and strokes
 

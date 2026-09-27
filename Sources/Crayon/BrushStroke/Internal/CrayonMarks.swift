@@ -5,8 +5,10 @@ import SwiftUI
 enum CrayonMarks {
     static func image(path: Path, size: CGSize, displayScale: CGFloat,
                       strength: Double, grainSize: CGFloat, seed: UInt32,
-                      style: FillStyle, outset: CGFloat) -> CGImage? {
-        guard size.width > 0, size.height > 0 else { return nil }
+                      style: FillStyle, outset: CGFloat,
+                      shouldCancel: () -> Bool = { false }) -> CGImage? {
+        guard size.width.isFinite, size.height.isFinite,
+              size.width > 0, size.height > 0 else { return nil }
         // Keep temporary masks bounded, including on very large decoration views.
         let scale = min(max(displayScale, 1), 2,
                         sqrt(2_097_152 / (size.width * size.height)))
@@ -41,6 +43,7 @@ enum CrayonMarks {
                        mix(sample(ix, iy + 1), sample(ix + 1, iy + 1), fx), fy)
         }
         for y in 0..<height {
+            guard !shouldCancel() else { return nil }
             for x in 0..<width {
                 let px = (Double(x) + 0.5) / Double(scale)
                 let py = (Double(y) + 0.5) / Double(scale)

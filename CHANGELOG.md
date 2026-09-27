@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 — 2026-09-27
+
+- Generate crayon fill coverage off the main actor by default so changing texture strength does not synchronously block button press updates.
+- Keep the previous texture visible while a replacement is prepared, and cancel obsolete work during rapid changes.
+- Add `renderingMode: .synchronous` for one-shot `ImageRenderer` exports and document rendering costs.
+
 ## 0.1.0 — 2026-09-27
 
 Initial public release of the `Crayon` SwiftUI library.
