@@ -4,7 +4,7 @@ import SwiftUI
 /// in local point coordinates; no contour dabs or regularly spaced scratches.
 enum CrayonMarks {
     static func image(path: Path, size: CGSize, displayScale: CGFloat,
-                      strength: Double, grainSize: CGFloat, seed: UInt32,
+                      strength: Double, grainSize: CGFloat, seed: UInt32, edgeRoughness: Double, directionality: Double = 0,
                       style: FillStyle, outset: CGFloat,
                       shouldCancel: () -> Bool = { false }) -> CGImage? {
         guard size.width.isFinite, size.height.isFinite,
@@ -30,6 +30,10 @@ enum CrayonMarks {
         }
         guard drawn else { return nil }
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        // Lighter pressure deposits less wax on every pass across the entire fill.
+        // Keep contact and stroke placement fixed so lightness cannot cut new holes.
+        let depositScale = 1 / max(strength, 1)
+        let lightness = 1 - depositScale
         let offset = Double(seed & 0xffff) / 37
         let offsetY = Double(seed >> 16) / 41
         func coverage(_ x: Double, _ y: Double) -> Double {
@@ -53,28 +57,44 @@ enum CrayonMarks {
                     + (noise(u / 0.65, v / 0.65) - 0.5) * 2.6
                 let roughY = (noise(u / 3.1 + 73, v / 3.1 + 19) - 0.5) * 6
                     + (noise(u / 0.65 + 31, v / 0.65 + 47) - 0.5) * 2.6
-                let edge = coverage(Double(x) + roughX * Double(grainSize * scale) * strength,
-                                    Double(y) + roughY * Double(grainSize * scale) * strength)
+                let edge = coverage(Double(x) + roughX * Double(grainSize * scale) * edgeRoughness,
+                                    Double(y) + roughY * Double(grainSize * scale) * edgeRoughness)
                 guard edge > 0 else { continue }
-                // Paper relief stays fixed across passes. Wax catches the peaks;
-                // deeper, clustered valleys remain bare until pressure reaches them.
-                let relief = noise(u / 0.55, v / 0.55) * 0.55
-                    + noise(u / 2.1 + 11, v / 2.1 + 23) * 0.45
-                let along = u * 0.78 - v * 0.63
-                let across = u * 0.63 + v * 0.78
-                let handPressure = noise(u / 23 + 51, v / 23 + 9)
-                var waxCoverage = 0.0
-                for pass in 0..<3 {
-                    let shift = Double(pass) * 37
-                    // Finite overlapping rubs: long-axis pressure variation is
-                    // gentle, and each pass meets the same paper topography.
-                    let pressure = noise(along / 13 + shift, across / 1.5 + shift)
-                    let reach = 0.39 + pressure * 0.13 + handPressure * 0.08
-                    let contact = min(1, max(0, (relief + reach - 0.60) / 0.12))
-                    let deposit = contact * (0.40 + pressure * 0.24)
-                    waxCoverage += (1 - waxCoverage) * deposit
+                // Soft, nondirectional paper tooth within broad curved rubbing marks.
+                // A gradual contact transition keeps the grain from becoming sharp scratches.
+                let relief = noise(u / 0.6, v / 0.6) * 0.40
+                    + noise(u / 1.1 + 11, v / 1.1 + 23) * 0.35
+                    + noise(u / 2.8 + 31, v / 2.8 + 17) * 0.25
+                let bend = (noise(u / 85 + 5, v / 65 + 71) - 0.5) * 24
+                let across = v + u * 0.12 + bend
+                let rubPressure = noise(u / 52 + 19, across / 11 + 43) * 0.75
+                    + noise(u / 95 + 67, v / 48 + 13) * 0.25
+                func wax(relief: Double, pressure: Double) -> Double {
+                    let threshold = 0.38 - pressure * 0.22
+                    let contact = min(1, max(0, (relief - threshold) / 0.26))
+                    let paperPickup = 1 - lightness * (1 - relief) * 0.3
+                    let deposit = contact * 0.80 * depositScale * paperPickup
+                    return 1 - pow(1 - deposit, 3)
                 }
-                let alpha = UInt8((edge * (1 - strength + strength * waxCoverage) * 255).rounded())
+                var waxCoverage = wax(relief: relief, pressure: rubPressure)
+                if directionality > 0 {
+                    // Long, finite rubs share a diagonal axis but wander and overlap.
+                    // Reversals change local pressure; there are no periodic stripe gaps.
+                    let along = u * 0.78 - v * 0.63
+                    let drift = (noise(u / 48 + 3, v / 48 + 61) - 0.5) * 5
+                    let cross = u * 0.63 + v * 0.78 + drift
+                    let directionalRelief = noise(along / 3.2, cross / 0.6) * 0.30
+                        + noise(along / 7.5 + 11, cross / 1.1 + 23) * 0.30
+                        + noise(u / 0.6, v / 0.6) * 0.25
+                        + noise(u / 2.8 + 31, v / 2.8 + 17) * 0.15
+                    let forward = noise(along / 42 + 19, cross / 5.5 + 43)
+                    let returning = noise(along / 35 + 67, cross / 7.5 + 13)
+                    let pressure = forward * 0.75 + returning * 0.25
+                    waxCoverage = mix(waxCoverage, wax(relief: directionalRelief, pressure: pressure),
+                                      directionality)
+                }
+                let blend = min(strength, 1)
+                let alpha = UInt8((edge * (1 - blend + blend * waxCoverage) * 255).rounded())
                 let index = (y * width + x) * 4
                 pixels[index] = alpha
                 pixels[index + 1] = alpha

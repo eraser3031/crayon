@@ -14,7 +14,7 @@ SwiftUI에서 크레파스로 칠한 면, 브러시 선, 거친 가장자리와 
 ## 빠르게 시작하기
 
 Xcode의 **Add Package Dependencies**에서
-`https://github.com/eraser3031/crayon.git`을 입력하고 버전 **0.1.1**을 선택한 뒤,
+`https://github.com/eraser3031/crayon.git`을 입력하고 버전 **0.2.0**을 선택한 뒤,
 앱 타깃에 `Crayon` 제품을 추가하세요.
 
 ```swift
@@ -39,7 +39,7 @@ struct Drawing: View {
 
 ```swift
 // Package.swift의 dependencies
-.package(url: "https://github.com/eraser3031/crayon.git", from: "0.1.1")
+.package(url: "https://github.com/eraser3031/crayon.git", from: "0.2.0")
 
 // 사용하는 target의 dependencies
 .product(name: "Crayon", package: "crayon")
@@ -68,7 +68,7 @@ struct Drawing: View {
 별도 크레파스 모디파이어나 텍스처 이미지가 필요하지 않습니다.
 
 종이의 고정된 요철 위에 세 번의 왁스 칠이 쌓이는 과정을 단순화한 모델입니다.
-압력이 닿지 않는 홈에는 종이가 비치고, 겹쳐 칠한 부분에는 은은한 대각선 농도 차이가 남습니다.
+부드러운 종이 결을 기본으로 하며, `directionality`를 높이면 대각선 왕복 칠 자국이 드러납니다.
 경계도 칠이 끝나는 위치와 작은 입자의 변화를 반영하며, 외곽선을 따로 그리지 않습니다.
 
 ![크레파스 질감 강도 0, 0.5, 1 비교](Documentation/Images/crayon-strength.png)
@@ -76,8 +76,10 @@ struct Drawing: View {
 | 설정 | 기본값 | 설명 |
 | --- | --- | --- |
 | `color` | `.primary` | 칠할 색. 색의 불투명도를 보존합니다. |
-| `textureStrength` | `0.8` | `0...1`. 0은 단색, 1은 종이 틈과 거친 경계가 가장 잘 드러납니다. |
+| `textureStrength` | `0.8` | `0...4` (grain은 `0...1`). 0은 단색, 1은 종이 결, 2~4는 더 연한 칠입니다. 외곽 거칠기와 독립적입니다. |
 | `.crayon(grainSize:)` | `1` | `0.5...4`. 종이 입자와 칠 자국의 공간적 크기를 조절합니다. |
+| `.crayon(edgeRoughness:)` | `0.8` | `0...1`. 외곽 거칠기를 독립적으로 조절합니다. |
+| `.crayon(directionality:)` | `0` | `0...1`. 높을수록 대각선 왕복 칠 자국이 드러납니다. 각도가 아닌 방향성의 정도입니다. |
 | `.crayon(seed:)` | `0` | 같은 크기와 설정에서 같은 패턴을 재현하는 값입니다. |
 | `renderingMode` | `.asynchronous` | 한 번에 만드는 `ImageRenderer` 내보내기에는 `.synchronous`를 사용합니다. |
 
@@ -85,8 +87,8 @@ struct Drawing: View {
 `fillStyle`은 질감 선택이고, 별도의 `style: FillStyle`은 SwiftUI의 even-odd 채우기 규칙과 안티앨리어싱 설정입니다.
 
 레이아웃 크기는 유지하지만 크레파스 입자는 원래 경계 밖으로 조금 돌출됩니다.
-렌더링 여유 공간은 `ceil(5 × grainSize × textureStrength) + 1`pt이며,
-부모의 `.clipped()`는 이 입자를 자를 수 있습니다. 강도 0에서는 추가 돌출이 없습니다.
+렌더링 여유 공간은 `ceil(5 × grainSize × edgeRoughness) + 1`pt이며,
+부모의 `.clipped()`는 이 입자를 자를 수 있습니다. `edgeRoughness: 0`에서는 추가 돌출이 없습니다.
 
 기본 설정에서 `.crayon`의 질감 이미지는 메인 액터 밖에서 계산합니다. `textureStrength`나 크기가 바뀌면 새 이미지가 준비될 때까지 이전 질감을 표시하고, 빠른 연속 변경에서는 이전 계산을 취소합니다. 처음 나타날 때는 질감이 준비될 때까지 단색으로 표시됩니다. 큰 채우기는 CPU와 메모리를 계속 사용하므로 잦은 입력 중에는 강도를 고정하는 편이 유리할 수 있습니다. 한 번에 결과를 만드는 `ImageRenderer` 내보내기에는 `renderingMode: .synchronous`를 지정해야 첫 이미지에 질감이 포함됩니다. 이 모드는 메인 액터에서 질감을 계산합니다. `.grain` 채우기는 공용 래스터 캐시를 사용하며 변경을 약 120ms 동안 모은 뒤 메인 액터에서 다시 그립니다.
 
@@ -203,7 +205,7 @@ native 빌드 시스템은 Metal 소스를 복사만 하므로, 위의 Xcode 샘
 swift test --build-system native
 ```
 
-최근 구현 검증: 회귀 테스트 **11개 통과**, **iOS Simulator 샘플 앱 빌드 성공**.
+Validation (0.2.0): **15 regression tests passed** with `swift test --build-system native`. Metal shader compilation is not verified for this release.
 실제 효과와 애니메이션은 샘플 앱에서 확인하세요. 루트 패키지는 라이브러리이므로 `swift run` 대상이 없습니다.
 
 ### 미리보기 이미지 다시 만들기

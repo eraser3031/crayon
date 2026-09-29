@@ -14,7 +14,7 @@
 ## 快速开始
 
 在 Xcode 中选择 **Add Package Dependencies**，输入
-`https://github.com/eraser3031/crayon.git`，选择版本 **0.1.1**，
+`https://github.com/eraser3031/crayon.git`，选择版本 **0.2.0**，
 然后将 `Crayon` 产品添加到应用 target。
 
 ```swift
@@ -39,7 +39,7 @@ struct Drawing: View {
 
 ```swift
 // Package.swift 中的 dependencies
-.package(url: "https://github.com/eraser3031/crayon.git", from: "0.1.1")
+.package(url: "https://github.com/eraser3031/crayon.git", from: "0.2.0")
 
 // 使用方 target 的 dependencies
 .product(name: "Crayon", package: "crayon")
@@ -68,7 +68,7 @@ struct Drawing: View {
 无需额外的蜡笔修饰符或纹理图片。
 
 渲染器简化模拟了三次涂抹的蜡层在固定纸面凹凸上堆积的过程。
-压力未能触及的凹槽会露出纸面，反复涂抹的区域则留下柔和的斜向浓淡变化。
+默认使用柔和的纸面纹理；提高 `directionality` 会显现斜向往返涂抹的痕迹。
 边缘也会体现收笔位置和细小颗粒的变化，不会额外绘制轮廓线。
 
 ![蜡笔纹理强度 0、0.5 和 1 的对比](Documentation/Images/crayon-strength.png)
@@ -76,8 +76,10 @@ struct Drawing: View {
 | 设置 | 默认值 | 说明 |
 | --- | --- | --- |
 | `color` | `.primary` | 填充颜色，保留颜色本身的不透明度。 |
-| `textureStrength` | `0.8` | `0...1`。0 为纯色，1 时纸面空隙和粗糙边缘最明显。 |
+| `textureStrength` | `0.8` | `0...4`（grain 为 `0...1`）。0 为纯色，1 显示纸面纹理，2–4 使涂色更淡。与边缘粗糙度独立。 |
 | `.crayon(grainSize:)` | `1` | `0.5...4`。控制纸面颗粒和涂抹痕迹的空间大小。 |
+| `.crayon(edgeRoughness:)` | `0.8` | `0...1`。独立控制边缘粗糙度。 |
+| `.crayon(directionality:)` | `0` | `0...1`。控制斜向往返涂抹痕迹的强弱，而非角度。 |
 | `.crayon(seed:)` | `0` | 在相同尺寸和设置下复现同一纹理图案。 |
 | `renderingMode` | `.asynchronous` | 一次性 `ImageRenderer` 导出时使用 `.synchronous`。 |
 
@@ -85,8 +87,8 @@ struct Drawing: View {
 `fillStyle` 选择纹理；单独的 `style: FillStyle` 参数控制 SwiftUI 的奇偶填充规则和抗锯齿设置。
 
 布局尺寸保持不变，但蜡笔颗粒会略微超出原始边界。
-渲染预留空间为 `ceil(5 × grainSize × textureStrength) + 1` pt。
-父视图的 `.clipped()` 可能裁掉这些颗粒。强度为 0 时不会额外向外延伸。
+渲染预留空间为 `ceil(5 × grainSize × edgeRoughness) + 1` pt。
+父视图的 `.clipped()` 可能裁掉这些颗粒。`edgeRoughness: 0` 时不会额外向外延伸。
 
 默认情况下，`.crayon` 的纹理图像在主 actor 之外计算。`textureStrength` 或尺寸变化时，旧纹理会保留到新图像完成；连续变化会取消过时的计算。首次显示时先使用纯色填充，待纹理准备好后再更新。大面积填充仍会消耗 CPU 和内存，因此频繁交互时固定强度有助于降低开销。使用一次性 `ImageRenderer` 导出时，请指定 `renderingMode: .synchronous`，以便第一张图像包含纹理；此模式在主 actor 上计算。`.grain` 填充使用共享栅格缓存，约 120 毫秒内的变化会合并，然后在主 actor 上重绘。
 
@@ -202,7 +204,7 @@ native 构建系统仅复制 Metal 源文件，因此还需要执行上面的 Xc
 swift test --build-system native
 ```
 
-最近的实现验证结果：**11 项回归测试通过**，**iOS Simulator 示例应用构建成功**。
+Validation (0.2.0): **15 regression tests passed** with `swift test --build-system native`. Metal shader compilation is not verified for this release.
 请在示例应用中查看实际效果与动画。根目录的包是库，没有可供 `swift run` 运行的目标。
 
 ### 重新生成预览图片

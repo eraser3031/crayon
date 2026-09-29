@@ -14,7 +14,7 @@ SwiftUI でクレヨンの塗り、ブラシ線、ざらついた輪郭、ボイ
 ## クイックスタート
 
 Xcode の **Add Package Dependencies** に
-`https://github.com/eraser3031/crayon.git` を入力し、バージョン **0.1.1** を選んで、
+`https://github.com/eraser3031/crayon.git` を入力し、バージョン **0.2.0** を選んで、
 アプリのターゲットに `Crayon` 製品を追加してください。
 
 ```swift
@@ -39,7 +39,7 @@ struct Drawing: View {
 
 ```swift
 // Package.swift の dependencies
-.package(url: "https://github.com/eraser3031/crayon.git", from: "0.1.1")
+.package(url: "https://github.com/eraser3031/crayon.git", from: "0.2.0")
 
 // 利用するターゲットの dependencies
 .product(name: "Crayon", package: "crayon")
@@ -68,7 +68,7 @@ struct Drawing: View {
 クレヨン専用のモディファイアやテクスチャ画像は不要です。
 
 固定された紙の凹凸に、3 回のワックスの塗りが重なる過程を簡略化したモデルです。
-圧力が届かない溝には紙が透け、塗り重ねた部分には淡い斜めの濃淡が残ります。
+既定では柔らかな紙の質感を使い、`directionality` を上げると斜めの往復する塗り跡が現れます。
 輪郭には塗り終わりの位置や細かな粒子のばらつきを反映し、別の輪郭線は描きません。
 
 ![クレヨンの質感の強さ 0、0.5、1 の比較](Documentation/Images/crayon-strength.png)
@@ -76,8 +76,10 @@ struct Drawing: View {
 | 設定 | 既定値 | 説明 |
 | --- | --- | --- |
 | `color` | `.primary` | 塗りの色。色の不透明度を維持します。 |
-| `textureStrength` | `0.8` | `0...1`。0 は単色、1 は紙の隙間とざらついた輪郭が最もよく現れます。 |
+| `textureStrength` | `0.8` | `0...4`（grain は `0...1`）。0 は単色、1 は紙の質感、2〜4 は薄い塗りです。輪郭とは独立しています。 |
 | `.crayon(grainSize:)` | `1` | `0.5...4`。紙の粒子と塗り跡の空間的な大きさを調整します。 |
+| `.crayon(edgeRoughness:)` | `0.8` | `0...1`。輪郭の粗さを独立して調整します。 |
+| `.crayon(directionality:)` | `0` | `0...1`。斜めに往復する塗り跡の強さを調整します。角度ではありません。 |
 | `.crayon(seed:)` | `0` | 同じサイズと設定で同じパターンを再現する値です。 |
 | `renderingMode` | `.asynchronous` | 1 回で出力する `ImageRenderer` には `.synchronous` を使います。 |
 
@@ -85,8 +87,8 @@ struct Drawing: View {
 `fillStyle` は質感を選択し、別の `style: FillStyle` は SwiftUI の even-odd 塗りつぶし規則とアンチエイリアスを設定します。
 
 レイアウトのサイズは変わりませんが、クレヨンの粒子は元の輪郭の外に少しはみ出します。
-描画用の余白は `ceil(5 × grainSize × textureStrength) + 1` pt です。
-親ビューの `.clipped()` によって粒子が切れることがあります。強さが 0 のときは追加のはみ出しはありません。
+描画用の余白は `ceil(5 × grainSize × edgeRoughness) + 1` pt です。
+親ビューの `.clipped()` によって粒子が切れることがあります。`edgeRoughness: 0` のときは追加のはみ出しはありません。
 
 既定では、`.crayon` の質感画像をメインアクターの外で計算します。`textureStrength` やサイズが変わると、新しい画像ができるまで前の質感を表示し、連続した変更では古い計算をキャンセルします。初回は質感ができるまで単色で表示します。大きな塗りは引き続き CPU とメモリを使うため、頻繁な操作中は強さを固定すると負荷を抑えられます。1 回で画像を出力する `ImageRenderer` では、`renderingMode: .synchronous` を指定すると最初の画像に質感が含まれます。このモードはメインアクターで計算します。`.grain` は共通のラスターキャッシュを使い、変更を約 120 ms まとめてからメインアクターで再描画します。
 
@@ -202,7 +204,7 @@ native ビルドシステムは Metal ソースをコピーするだけなので
 swift test --build-system native
 ```
 
-直近の実装検証: **回帰テスト 11 件成功**、**iOS Simulator 向けサンプルアプリのビルド成功**。
+Validation (0.2.0): **15 regression tests passed** with `swift test --build-system native`. Metal shader compilation is not verified for this release.
 効果やアニメーションはサンプルアプリで確認してください。ルートパッケージはライブラリのため、`swift run` の実行対象はありません。
 
 ### プレビュー画像の再生成

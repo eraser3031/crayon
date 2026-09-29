@@ -9,6 +9,8 @@ struct AsyncCrayonCanvas: View {
     let strength: Double
     let grainSize: CGFloat
     let seed: UInt32
+    let edgeRoughness: Double
+    let directionality: Double
     let style: FillStyle
     let outset: CGFloat
 
@@ -24,6 +26,8 @@ struct AsyncCrayonCanvas: View {
         let strength: Double
         let grainSize: CGFloat
         let seed: UInt32
+        let edgeRoughness: Double
+        let directionality: Double
         let isEOFilled: Bool
         let isAntialiased: Bool
         let outset: CGFloat
@@ -37,7 +41,7 @@ struct AsyncCrayonCanvas: View {
     var body: some View {
         GeometryReader { geometry in
             let request = Request(path: path, size: geometry.size, displayScale: displayScale,
-                                  strength: strength, grainSize: grainSize, seed: seed,
+                                  strength: strength, grainSize: grainSize, seed: seed, edgeRoughness: edgeRoughness, directionality: directionality,
                                   isEOFilled: style.isEOFilled, isAntialiased: style.isAntialiased,
                                   outset: outset)
             Canvas { context, size in
@@ -75,7 +79,7 @@ struct AsyncCrayonCanvas: View {
             let image = CrayonMarks.image(path: request.path, size: request.size,
                                           displayScale: request.displayScale,
                                           strength: request.strength, grainSize: request.grainSize,
-                                          seed: request.seed, style: style, outset: request.outset,
+                                          seed: request.seed, edgeRoughness: request.edgeRoughness, directionality: request.directionality, style: style, outset: request.outset,
                                           shouldCancel: { Task.isCancelled })
             await MainActor.run {
                 guard currentRequest == request, !Task.isCancelled else { return }

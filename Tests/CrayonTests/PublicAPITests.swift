@@ -97,4 +97,49 @@ final class PublicAPITests: XCTestCase {
         XCTAssertLessThanOrEqual(alphas.max() ?? 255, 128, "Passes must preserve the tint's opacity")
     }
 
+    @MainActor
+    func testCrayonFillAndEdgeStrengthsAreIndependent() throws {
+        func render(strength: Double, roughness: Double) throws -> [UInt8] {
+            let renderer = ImageRenderer(content: Rectangle()
+                .brushFill(color: .red, textureStrength: strength,
+                           fillStyle: .crayon(seed: 7, edgeRoughness: roughness),
+                           renderingMode: .synchronous)
+                .frame(width: 60, height: 60).padding(10))
+            renderer.scale = 1
+            let image = try XCTUnwrap(renderer.cgImage)
+            var pixels = [UInt8](repeating: 0, count: 80 * 80 * 4)
+            try pixels.withUnsafeMutableBytes { buffer in
+                let context = try XCTUnwrap(CGContext(
+                    data: buffer.baseAddress, width: 80, height: 80,
+                    bitsPerComponent: 8, bytesPerRow: 320,
+                    space: CGColorSpaceCreateDeviceRGB(),
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+                context.draw(image, in: CGRect(x: 0, y: 0, width: 80, height: 80))
+            }
+            return stride(from: 3, to: pixels.count, by: 4).map { pixels[$0] }
+        }
+        let solidClean = try render(strength: 0, roughness: 0)
+        let solidRough = try render(strength: 0, roughness: 1)
+        let texturedClean = try render(strength: 0.8, roughness: 0)
+        let texturedRough = try render(strength: 0.8, roughness: 1)
+        let interior = (20..<60).flatMap { y in (20..<60).map { y * 80 + $0 } }
+        XCTAssertTrue(interior.allSatisfy { solidClean[$0] == 255 && solidRough[$0] == 255 })
+        XCTAssertEqual(interior.map { texturedClean[$0] }, interior.map { texturedRough[$0] },
+                       "Changing the edge must not change the interior paper pattern")
+        XCTAssertTrue(interior.contains { texturedClean[$0] < 150 })
+        let outside = (0..<80).flatMap { y in
+            (0..<80).filter { x in x < 10 || x >= 70 || y < 10 || y >= 70 }
+                .map { y * 80 + $0 }
+        }
+        XCTAssertTrue(outside.allSatisfy { solidClean[$0] == 0 && texturedClean[$0] == 0 })
+        XCTAssertTrue(outside.contains { solidRough[$0] > 0 },
+                      "Rough edges must render even with a fully solid interior")
+        // At strength 0.8, coverage retains a 20% floor. Ignore sub-byte
+        // antialiasing values that can round to zero after that attenuation.
+        XCTAssertTrue(outside.filter { solidRough[$0] >= 3 }.allSatisfy { texturedRough[$0] > 0 },
+                      "Changing fill strength must preserve the displaced boundary")
+        XCTAssertTrue(outside.filter { solidRough[$0] == 0 }.allSatisfy { texturedRough[$0] == 0 },
+                      "Fill strength must not move pigment beyond the existing boundary")
+    }
+
 }

@@ -16,7 +16,7 @@ Create crayon textures without external images, or supply your own brush tip and
 ## Quick start
 
 In Xcode, choose **Add Package Dependencies**, enter
-`https://github.com/eraser3031/crayon.git`, select version **0.1.1**, and add
+`https://github.com/eraser3031/crayon.git`, select version **0.2.0**, and add
 the `Crayon` product to your app target.
 
 ```swift
@@ -41,7 +41,7 @@ You can also add it to another Swift package.
 
 ```swift
 // Package.swift dependencies
-.package(url: "https://github.com/eraser3031/crayon.git", from: "0.1.1")
+.package(url: "https://github.com/eraser3031/crayon.git", from: "0.2.0")
 
 // Dependencies of the consuming target
 .product(name: "Crayon", package: "crayon")
@@ -70,8 +70,8 @@ Custom tips change the appearance of `.grain` fills and brush strokes.
 Select `fillStyle` on **the same `brushFill` API**.
 No separate crayon modifier or texture image is required.
 
-The renderer approximates three wax passes accumulating over fixed paper relief.
-Paper shows through grooves the pressure does not reach; overlapping passes leave subtle diagonal variations in density.
+The renderer accumulates wax over fixed paper relief.
+Soft, fine paper grain is distributed throughout the fill, while broad, gently curved rubbing marks vary its density. Gradual wax contact avoids sharp directional scratches.
 The boundary reflects uneven stopping positions and fine grain, without a separate outline.
 
 ![Crayon texture strength at 0, 0.5, and 1](Documentation/Images/crayon-strength.png)
@@ -79,8 +79,10 @@ The boundary reflects uneven stopping positions and fine grain, without a separa
 | Setting | Default | Description |
 | --- | --- | --- |
 | `color` | `.primary` | Fill color. Its opacity is preserved. |
-| `textureStrength` | `0.8` | `0...1`. 0 is solid; 1 reveals the full paper gaps and rough edges. |
+| `textureStrength` | `0.8` | `0...4` for crayon (`0...1` for grain). 0 is solid; 1 keeps the original paper gaps; 2–4 deposit less wax evenly across the fill for a lighter color with fine paper grain; they do not add blank bands or enlarge paper gaps. Does not change edge roughness. |
 | `.crayon(grainSize:)` | `1` | `0.5...4`. Controls the spatial size of paper grain and wax marks. |
+| `.crayon(edgeRoughness:)` | `0.8` | `0...1`. 0 preserves the original boundary; 1 gives full edge displacement, independently of `textureStrength`. |
+| `.crayon(directionality:)` | `0` | `0...1`. Blends soft grain into overlapping diagonal back-and-forth rubs. Controls the visibility of direction, not its angle. Independent of edge roughness and strength. |
 | `.crayon(seed:)` | `0` | Reproduces the same pattern at the same size and settings. |
 | `renderingMode` | `.asynchronous` | Use `.synchronous` for a one-shot `ImageRenderer` export. |
 
@@ -88,10 +90,20 @@ The boundary reflects uneven stopping positions and fine grain, without a separa
 `fillStyle` selects the texture; the separate `style: FillStyle` controls SwiftUI's even-odd fill rule and antialiasing.
 
 Layout dimensions stay unchanged, but crayon pigment can extend slightly beyond the original boundary.
-The rendering margin is `ceil(5 × grainSize × textureStrength) + 1` pt.
-An ancestor's `.clipped()` can trim this pigment. At strength 0, there is no extra overhang.
+The rendering margin is `ceil(5 × grainSize × edgeRoughness) + 1` pt.
+An ancestor's `.clipped()` can trim this pigment. At edge roughness 0, there is no extra overhang. Set both strengths to 0 for a solid fill with a clean boundary. Existing calls use a fixed edge roughness of 0.8; pass the same value as `textureStrength` to reproduce the former coupled behavior.
 
-By default, `.crayon` computes its coverage image off the main actor. When `textureStrength` or geometry changes, the previous texture remains visible until the new image is ready; rapid changes cancel obsolete work. The first appearance shows a solid fill until the texture is ready. Large fills still consume CPU and memory, so keeping texture strength fixed can help during frequent interaction. For a one-shot `ImageRenderer` export, pass `renderingMode: .synchronous` to include the texture in the first image. This mode performs the expensive calculation on the main actor. `.grain` fills use the shared raster cache, which coalesces changes for about 120 ms and also renders on the main actor.
+By default, `.crayon` computes its coverage image off the main actor. When `textureStrength`, `edgeRoughness`, `directionality`, or geometry changes, the previous texture remains visible until the new image is ready; rapid changes cancel obsolete work. The first appearance shows a solid fill until the texture is ready. Large fills still consume CPU and memory, so keeping texture strength fixed can help during frequent interaction. For a one-shot `ImageRenderer` export, pass `renderingMode: .synchronous` to include the texture in the first image. This mode performs the expensive calculation on the main actor. `.grain` fills use the shared raster cache, which coalesces changes for about 120 ms and also renders on the main actor.
+
+The three independent controls can be combined:
+
+```swift
+RoundedRectangle(cornerRadius: 24)
+    .brushFill(color: .teal, textureStrength: 2,
+               fillStyle: .crayon(edgeRoughness: 0.8, directionality: 0.5))
+```
+
+![Strength 1–4 by directionality 0, 0.5, and 1](Documentation/Images/crayon-directionality.png)
 
 ## Brush fills and strokes
 
@@ -205,7 +217,7 @@ The native build system only copies Metal sources, so also use the Xcode sample 
 swift test --build-system native
 ```
 
-Latest implementation checks: **11 regression tests passed** and **the iOS Simulator sample app built successfully**.
+Validation for 0.2.0: **15 regression tests passed** with the native build system. Metal shader compilation is not verified for this release.
 Use the sample app to inspect effects and animation. The root package is a library and has no `swift run` target.
 
 ### Regenerate preview images

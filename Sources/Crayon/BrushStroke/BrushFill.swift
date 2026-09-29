@@ -4,22 +4,25 @@ import SwiftUI
 /// `crayon` creates wax marks and paper gaps without an image resource.
 public enum BrushFillStyle: Equatable, Sendable {
     case grain
-    case crayon(grainSize: CGFloat = 1, seed: UInt32 = 0)
+    /// Edge roughness controls boundary displacement independently of texture strength.
+    /// Directionality (0...1) reveals overlapping diagonal back-and-forth rubs; 0 keeps soft grain.
+    case crayon(grainSize: CGFloat = 1, seed: UInt32 = 0, edgeRoughness: Double = 0.8, directionality: Double = 0)
 
     var sanitized: Self {
         switch self {
         case .grain:
             return .grain
-        case let .crayon(grainSize, seed):
+        case let .crayon(grainSize, seed, edgeRoughness, directionality):
             return .crayon(grainSize: grainSize.isFinite ? min(max(grainSize, 0.5), 4) : 1,
-                           seed: seed)
+                           seed: seed, edgeRoughness: edgeRoughness.isFinite ? min(max(edgeRoughness, 0), 1) : 0.8,
+                           directionality: directionality.isFinite ? min(max(directionality, 0), 1) : 0)
         }
     }
 
     var cacheParameters: [Double] {
         switch self {
         case .grain: [0, 0, 0]
-        case let .crayon(grainSize, seed): [1, Double(grainSize), Double(seed)]
+        case let .crayon(grainSize, seed, edgeRoughness, directionality): [1, Double(grainSize), Double(seed), edgeRoughness, directionality]
         }
     }
 }
@@ -34,6 +37,7 @@ public enum BrushFillRenderingMode: Sendable {
 extension Shape {
     /// Fills this shape with either the prepared tip's grain or a crayon texture.
     /// Strength 0 is solid; 1 shows the selected texture's full paper gaps.
+    /// Crayon supports up to 4 for lighter wax deposits across the fill; grain caps at 1.
     /// Crayon coverage is generated off the main actor by default. Use synchronous
     /// rendering when a one-shot ImageRenderer must capture the finished texture.
     /// `style` is SwiftUI's fill rule; `fillStyle` selects the visible texture.
@@ -43,7 +47,8 @@ extension Shape {
                    fillStyle: BrushFillStyle = .grain,
                    renderingMode: BrushFillRenderingMode = .asynchronous,
                    style: FillStyle = FillStyle()) -> some View {
-        let strength = textureStrength.isFinite ? min(max(textureStrength, 0), 1) : 0.8
+        let maximumStrength: Double = if case .crayon = fillStyle { 4 } else { 1 }
+        let strength = textureStrength.isFinite ? min(max(textureStrength, 0), maximumStrength) : 0.8
         let scale = grainScale.isFinite ? min(max(grainScale, 16), 2048) : 240
         return BrushFill(shape: self, tip: tip, color: color, strength: strength,
                          scale: scale, fillStyle: fillStyle.sanitized,
@@ -65,8 +70,8 @@ private struct BrushFill<S: Shape>: View {
     var body: some View {
         GeometryReader { geometry in
             let outset: CGFloat = {
-                if case let .crayon(grainSize, _) = fillStyle, strength > 0 {
-                    return ceil(5 * grainSize * strength) + 1
+                if case let .crayon(grainSize, _, edgeRoughness, _) = fillStyle, edgeRoughness > 0 {
+                    return ceil(5 * grainSize * edgeRoughness) + 1
                 }
                 return 0
             }()
@@ -78,10 +83,10 @@ private struct BrushFill<S: Shape>: View {
                                      parameters: [strength, Double(scale), style.isEOFilled ? 1 : 0,
                                                   style.isAntialiased ? 1 : 0] + fillStyle.cacheParameters)
             Group {
-                if case let .crayon(grainSize, seed) = fillStyle,
-                   strength > 0, renderingMode == .asynchronous {
+                if case let .crayon(grainSize, seed, edgeRoughness, directionality) = fillStyle,
+                   (strength > 0 || edgeRoughness > 0), renderingMode == .asynchronous {
                     AsyncCrayonCanvas(path: path, color: Color(resolved), strength: strength,
-                                      grainSize: grainSize, seed: seed, style: style, outset: outset)
+                                      grainSize: grainSize, seed: seed, edgeRoughness: edgeRoughness, directionality: directionality, style: style, outset: outset)
                 } else {
                     CachedBrushCanvas(key: key) {
                         rasterContent(path: path, color: Color(resolved), outset: outset)
@@ -101,11 +106,11 @@ private struct BrushFill<S: Shape>: View {
             let bounds = CGRect(origin: .zero, size: size)
             guard size.width.isFinite, size.height.isFinite,
                   size.width > 0, size.height > 0 else { return }
-            if case let .crayon(grainSize, seed) = fillStyle, strength > 0 {
+            if case let .crayon(grainSize, seed, edgeRoughness, directionality) = fillStyle, strength > 0 || edgeRoughness > 0 {
                 if let image = CrayonMarks.image(path: path, size: size,
                                                 displayScale: environment.displayScale,
                                                 strength: strength, grainSize: grainSize,
-                                                seed: seed, style: style, outset: outset) {
+                                                seed: seed, edgeRoughness: edgeRoughness, directionality: directionality, style: style, outset: outset) {
                     var coverage = context.resolve(Image(decorative: image, scale: 1))
                     coverage.shading = .color(color)
                     context.draw(coverage, in: bounds)

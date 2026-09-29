@@ -14,6 +14,111 @@ struct PreviewGenerator {
         let output = URL(fileURLWithPath: CommandLine.arguments.dropFirst().first ?? "Documentation/Images",
                          isDirectory: true)
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        if CommandLine.arguments.contains("--reference-colors") {
+            try save("crayon-reference-colors", to: output, content:
+                VStack(alignment: .leading, spacing: 22) {
+                    heading("크레용 질감 수정", detail: "실제 렌더링 · textureStrength: 1 · grainSize: 1 · 외곽 거칠기: 0.5")
+                    HStack(spacing: 24) {
+                        ForEach(0..<2) { index in
+                            RoundedRectangle(cornerRadius: 36)
+                                .brushFill(color: index == 0 ? Color(red: 0.15, green: 0.43, blue: 0.97) : Color(red: 1, green: 0.58, blue: 0.04),
+                                           textureStrength: 1,
+                                           fillStyle: .crayon(seed: 7, edgeRoughness: 0.5), renderingMode: .synchronous)
+                                .frame(width: 340, height: 340)
+                        }
+                    }.padding(6)
+                }.padding(24))
+            return
+        }
+        if CommandLine.arguments.contains("--reference-texture") {
+            try save("crayon-reference-texture", to: output, content:
+                VStack(alignment: .leading, spacing: 20) {
+                    heading("종이 결 위에 쌓이는 크레용", detail: "실제 렌더링 · textureStrength: 1 · grainSize: 1 · seed: 7")
+                    Rectangle()
+                        .brushFill(color: Color(red: 0.40, green: 0.70, blue: 0.70), textureStrength: 1,
+                                   fillStyle: .crayon(seed: 7, edgeRoughness: 0), renderingMode: .synchronous)
+                        .frame(width: 470, height: 650)
+                }.padding(24))
+            return
+        }
+        if CommandLine.arguments.contains("--compare-directionality") {
+            for edge in [0.0, 0.8] {
+                try save(edge == 0 ? "crayon-directionality-clean" : "crayon-directionality", to: output, content:
+                    VStack(alignment: .leading, spacing: 20) {
+                        heading("칠 강도 × 왕복 칠 방향성", detail: "외곽 거칠기: \(edge) · grainSize: 1 · seed: 7 · 실제 렌더링")
+                        HStack(spacing: 24) {
+                            ForEach([0.0, 0.5, 1.0], id: \.self) { direction in
+                                Text("방향성 \(direction.formatted())")
+                                    .font(.system(size: 16, weight: .semibold)).frame(width: 210)
+                            }
+                        }
+                        ForEach([1.0, 2.0, 3.0, 4.0], id: \.self) { strength in
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("textureStrength: \(Int(strength))").font(.system(size: 15, weight: .medium))
+                                HStack(spacing: 24) {
+                                    ForEach([0.0, 0.5, 1.0], id: \.self) { direction in
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .brushFill(color: Color(red: 0.40, green: 0.70, blue: 0.70), textureStrength: strength,
+                                                       fillStyle: .crayon(seed: 7, edgeRoughness: edge, directionality: direction),
+                                                       renderingMode: .synchronous)
+                                            .frame(width: 194, height: 116).padding(8)
+                                    }
+                                }
+                            }
+                        }
+                    }.padding(30))
+            }
+            return
+        }
+        if CommandLine.arguments.contains("--compare-coverage") {
+            try save("crayon-lighter-coverage", to: output, content:
+                VStack(alignment: .leading, spacing: 28) {
+                    heading("부드러운 크레용 결 · 강도별 비교", detail: "외곽 거칠기 0.8 고정 · grainSize: 1 · seed: 7 · 실제 렌더링")
+                    ForEach([1.0, 3.0], id: \.self) { start in
+                        HStack(spacing: 36) {
+                            ForEach([start, start + 1], id: \.self) { strength in
+                                VStack(alignment: .leading, spacing: 18) {
+                                    Text("textureStrength: \(Int(strength))")
+                                        .font(.system(size: 17, weight: .semibold))
+                                    RoundedRectangle(cornerRadius: 24)
+                                        .brushFill(color: Color(red: 0.40, green: 0.70, blue: 0.70), textureStrength: strength,
+                                                   fillStyle: .crayon(seed: 7, edgeRoughness: 0.8),
+                                                   renderingMode: .synchronous)
+                                        .frame(width: 280, height: 200).padding(10)
+                                }
+                            }
+                        }
+                    }
+                }.padding(36))
+            return
+        }
+        if CommandLine.arguments.contains("--compare-edges") {
+            try save("crayon-independent-controls", to: output, content:
+                VStack(alignment: .leading, spacing: 30) {
+                    heading("내부 빈틈 × 외곽 거칠기", detail: "실제 Crayon 렌더링 · 동일한 색 / grainSize: 1 / seed: 7")
+                    HStack(spacing: 36) {
+                        Text("외곽 매끈 · 0").frame(width: 300)
+                        Text("외곽 거침 · 1").frame(width: 300)
+                    }.font(.system(size: 18, weight: .semibold))
+                    ForEach([0.0, 1.0], id: \.self) { strength in
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text(strength == 0 ? "내부 꽉 채움 · textureStrength: 0" : "내부 빈틈 많음 · textureStrength: 1")
+                                .font(.system(size: 16, weight: .medium))
+                            HStack(spacing: 36) {
+                                ForEach([0.0, 1.0], id: \.self) { roughness in
+                                    RoundedRectangle(cornerRadius: 24)
+                                        .brushFill(color: blue, textureStrength: strength,
+                                                   fillStyle: .crayon(grainSize: 1, seed: 7, edgeRoughness: roughness),
+                                                   renderingMode: .synchronous)
+                                        .frame(width: 280, height: 180)
+                                        .padding(10)
+                                }
+                            }
+                        }
+                    }
+                }.padding(36))
+            return
+        }
         try save("crayon", to: output, content:
             VStack(alignment: .leading, spacing: 24) {
                 heading("Crayon", detail: "Wax layers · paper grain · broken edges")

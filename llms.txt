@@ -2,7 +2,7 @@
 
 > Crayon is a SwiftUI library for crayon fills, brush strokes, textured edges, and line-boil animation on iOS 17+ and macOS 14+.
 
-Import the `Crayon` library product. It requires Swift tools 5.9 or later and has no external package dependencies. Add `https://github.com/eraser3031/crayon.git` as a Swift Package dependency, starting from version `0.1.1`. The README contains usage examples and API guidance. This repository's sample app demonstrates the effects interactively.
+Import the `Crayon` library product. It requires Swift tools 5.9 or later and has no external package dependencies. Add `https://github.com/eraser3031/crayon.git` as a Swift Package dependency, starting from version `0.2.0`. The README contains usage examples and API guidance. This repository's sample app demonstrates the effects interactively.
 
 ## Documentation
 
@@ -15,4 +15,4 @@ Import the `Crayon` library product. It requires Swift tools 5.9 or later and ha
 
 ## Optional
 
-- [Changelog](https://raw.githubusercontent.com/eraser3031/crayon/main/CHANGELOG.md): Release history and changes in 0.1.1.
+- [Changelog](https://raw.githubusercontent.com/eraser3031/crayon/main/CHANGELOG.md): Release history and changes in 0.2.0.

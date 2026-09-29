@@ -4,6 +4,8 @@ import SwiftUI
 struct ContentView: View {
     @State private var selectedColor = 0
     @State private var strength = 0.9
+    @State private var directionality = 0.0
+    @State private var edgeRoughness = 0.8
     @State private var grainSize = 1.0
     @State private var animateStroke = false
 
@@ -25,7 +27,7 @@ struct ContentView: View {
                         SampleCard(title: "크레파스 칠", subtitle: "brushFill · .crayon 스타일") {
                             RoundedRectangle(cornerRadius: 28)
                                 .brushFill(color: color, textureStrength: strength,
-                                           fillStyle: .crayon(grainSize: grainSize, seed: 7))
+                                           fillStyle: .crayon(grainSize: grainSize, seed: 7, edgeRoughness: edgeRoughness, directionality: directionality))
                                 .frame(width: 180, height: 125)
                         }
 
@@ -81,8 +83,16 @@ struct ContentView: View {
             .pickerStyle(.segmented)
 
             LabeledContent("질감 강도", value: strength.formatted(.percent.precision(.fractionLength(0))))
-            Slider(value: $strength, in: 0...1)
+            Slider(value: $strength, in: 0...4)
                 .accessibilityLabel("질감 강도")
+
+            LabeledContent("외곽 거칠기", value: edgeRoughness.formatted(.percent.precision(.fractionLength(0))))
+            Slider(value: $edgeRoughness, in: 0...1)
+                .accessibilityLabel("외곽 거칠기")
+
+            LabeledContent("왕복 칠 방향성", value: directionality.formatted(.percent.precision(.fractionLength(0))))
+            Slider(value: $directionality, in: 0...1)
+                .accessibilityLabel("왕복 칠 방향성")
 
             LabeledContent("크레파스 자국 크기", value: grainSize.formatted(.number.precision(.fractionLength(1))))
             Slider(value: $grainSize, in: 0.5...2)
