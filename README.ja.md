@@ -26,8 +26,8 @@ struct Drawing: View {
         RoundedRectangle(cornerRadius: 24)
             .brushFill(
                 color: Color(red: 1, green: 0.84, blue: 0.25),
-                textureStrength: 0.9,
-                fillStyle: .crayon(grainSize: 1, seed: 7)
+                textureStrength: 1,
+                fillStyle: .crayon(seed: 7, edgeRoughness: 0.8, directionality: 0.5)
             )
             .frame(width: 280, height: 180)
             .padding(16)
@@ -67,11 +67,33 @@ struct Drawing: View {
 **同じ `brushFill` API** の `fillStyle` で選択します。
 クレヨン専用のモディファイアやテクスチャ画像は不要です。
 
-固定された紙の凹凸に、3 回のワックスの塗りが重なる過程を簡略化したモデルです。
-既定では柔らかな紙の質感を使い、`directionality` を上げると斜めの往復する塗り跡が現れます。
-輪郭には塗り終わりの位置や細かな粒子のばらつきを反映し、別の輪郭線は描きません。
+### 3 つの独立した調整軸
 
-![クレヨンの質感の強さ 0、0.5、1 の比較](Documentation/Images/crayon-strength.png)
+`textureStrength` は内部の塗りを調整します。0 は単色、1 は紙の質感、2〜4 は薄い塗りです。値を上げるほど色は薄くなります。
+
+`edgeRoughness` は輪郭の粗さ（0〜1）、`directionality` は往復する塗り跡の強さ（0〜1）を調整します。方向の角度を変える値ではありません。強さ 0 の単色では方向性の違いは見えません。
+
+### 強さ × 方向性
+
+行は強さ 1〜4、列は方向性 0・0.5・1 です。色、シード、輪郭の粗さ 0.8 は固定しています。
+
+![強さ × 方向性](Documentation/Images/crayon-directionality.png)
+
+[輪郭の粗さ 0 で同じ組み合わせを見る](Documentation/Images/crayon-directionality-clean.png)
+
+### 薄い塗り
+
+方向性 0、輪郭の粗さ 0.8 を固定し、強さだけを変えています。
+
+![薄い塗り](Documentation/Images/crayon-lighter-coverage.png)
+
+### 輪郭を独立して調整
+
+単色に粗い輪郭を組み合わせたり、紙の質感を残したまま輪郭を滑らかにできます。
+
+![輪郭を独立して調整](Documentation/Images/crayon-independent-controls.png)
+
+### パラメーター
 
 | 設定 | 既定値 | 説明 |
 | --- | --- | --- |
@@ -90,7 +112,9 @@ struct Drawing: View {
 描画用の余白は `ceil(5 × grainSize × edgeRoughness) + 1` pt です。
 親ビューの `.clipped()` によって粒子が切れることがあります。`edgeRoughness: 0` のときは追加のはみ出しはありません。
 
-既定では、`.crayon` の質感画像をメインアクターの外で計算します。`textureStrength` やサイズが変わると、新しい画像ができるまで前の質感を表示し、連続した変更では古い計算をキャンセルします。初回は質感ができるまで単色で表示します。大きな塗りは引き続き CPU とメモリを使うため、頻繁な操作中は強さを固定すると負荷を抑えられます。1 回で画像を出力する `ImageRenderer` では、`renderingMode: .synchronous` を指定すると最初の画像に質感が含まれます。このモードはメインアクターで計算します。`.grain` は共通のラスターキャッシュを使い、変更を約 120 ms まとめてからメインアクターで再描画します。
+既定では、`.crayon` の質感画像をメインアクターの外で計算します。`textureStrength`、`edgeRoughness`、`directionality` やサイズが変わると、新しい画像ができるまで前の質感を表示し、連続した変更では古い計算をキャンセルします。初回は質感ができるまで単色で表示します。大きな塗りは引き続き CPU とメモリを使うため、頻繁な操作中は強さを固定すると負荷を抑えられます。1 回で画像を出力する `ImageRenderer` では、`renderingMode: .synchronous` を指定すると最初の画像に質感が含まれます。このモードはメインアクターで計算します。`.grain` は共通のラスターキャッシュを使い、変更を約 120 ms まとめてからメインアクターで再描画します。
+
+0.1.x から移行する場合、輪郭の粗さは強さとは独立した `0.8` が既定値です。以前の輪郭変位を維持するには、以前の強さ（0〜1）を `edgeRoughness` に指定してください。内部の質感は変更されています。[変更履歴](CHANGELOG.md)を参照してください。
 
 ## ブラシの塗りと線
 
@@ -204,7 +228,7 @@ native ビルドシステムは Metal ソースをコピーするだけなので
 swift test --build-system native
 ```
 
-Validation (0.2.0): **15 regression tests passed** with `swift test --build-system native`. Metal shader compilation is not verified for this release.
+0.2.0 の検証: `swift test --build-system native` で **回帰テスト 15 件成功**。このリリースの Metal シェーダーコンパイルは未検証です。
 効果やアニメーションはサンプルアプリで確認してください。ルートパッケージはライブラリのため、`swift run` の実行対象はありません。
 
 ### プレビュー画像の再生成
@@ -214,8 +238,10 @@ macOS でリポジトリのルートから実行します。実際の `Crayon` �
 
 ```sh
 swift run --package-path Tools/PreviewGenerator --build-system native \
-  PreviewGenerator Documentation/Images
+  PreviewGenerator Documentation/Images --all
 ```
 
 このツールはクレヨン塗り、グレイン塗り、ブラシ線の静止画を生成します。
 Metal ベースの輪郭効果とボイリングはサンプルアプリで確認してください。
+
+`--all` は強さ・方向性・輪郭の比較を含む全画像を再生成します。個別の比較には `--compare-directionality`、`--compare-coverage`、`--compare-edges` を使えます。

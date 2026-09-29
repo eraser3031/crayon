@@ -26,8 +26,8 @@ struct Drawing: View {
         RoundedRectangle(cornerRadius: 24)
             .brushFill(
                 color: Color(red: 1, green: 0.84, blue: 0.25),
-                textureStrength: 0.9,
-                fillStyle: .crayon(grainSize: 1, seed: 7)
+                textureStrength: 1,
+                fillStyle: .crayon(seed: 7, edgeRoughness: 0.8, directionality: 0.5)
             )
             .frame(width: 280, height: 180)
             .padding(16)
@@ -67,11 +67,33 @@ struct Drawing: View {
 在**同一个 `brushFill` API** 中通过 `fillStyle` 选择蜡笔样式。
 无需额外的蜡笔修饰符或纹理图片。
 
-渲染器简化模拟了三次涂抹的蜡层在固定纸面凹凸上堆积的过程。
-默认使用柔和的纸面纹理；提高 `directionality` 会显现斜向往返涂抹的痕迹。
-边缘也会体现收笔位置和细小颗粒的变化，不会额外绘制轮廓线。
+### 三个独立控制维度
 
-![蜡笔纹理强度 0、0.5 和 1 的对比](Documentation/Images/crayon-strength.png)
+`textureStrength` 控制内部涂色：0 为纯色，1 显示纸面纹理，2–4 逐渐变淡。数值越高，颜色越淡，而非越浓。
+
+`edgeRoughness` 控制边缘粗糙度（0–1），`directionality` 控制往返涂抹痕迹的明显程度（0–1），不改变方向角度。强度为 0 的纯色内部不显示方向性的差异。
+
+### 强度 × 方向性
+
+行对应强度 1–4，列对应方向性 0、0.5、1。颜色、种子和边缘粗糙度 0.8 保持不变。
+
+![强度 × 方向性](Documentation/Images/crayon-directionality.png)
+
+[查看边缘粗糙度为 0 的相同组合](Documentation/Images/crayon-directionality-clean.png)
+
+### 更淡的涂色
+
+固定方向性为 0、边缘粗糙度为 0.8，仅改变强度。
+
+![更淡的涂色](Documentation/Images/crayon-lighter-coverage.png)
+
+### 独立控制边缘
+
+可以为纯色内部添加粗糙边缘，也可以保留纸面纹理并使用平滑边缘。
+
+![独立控制边缘](Documentation/Images/crayon-independent-controls.png)
+
+### 参数
 
 | 设置 | 默认值 | 说明 |
 | --- | --- | --- |
@@ -90,7 +112,9 @@ struct Drawing: View {
 渲染预留空间为 `ceil(5 × grainSize × edgeRoughness) + 1` pt。
 父视图的 `.clipped()` 可能裁掉这些颗粒。`edgeRoughness: 0` 时不会额外向外延伸。
 
-默认情况下，`.crayon` 的纹理图像在主 actor 之外计算。`textureStrength` 或尺寸变化时，旧纹理会保留到新图像完成；连续变化会取消过时的计算。首次显示时先使用纯色填充，待纹理准备好后再更新。大面积填充仍会消耗 CPU 和内存，因此频繁交互时固定强度有助于降低开销。使用一次性 `ImageRenderer` 导出时，请指定 `renderingMode: .synchronous`，以便第一张图像包含纹理；此模式在主 actor 上计算。`.grain` 填充使用共享栅格缓存，约 120 毫秒内的变化会合并，然后在主 actor 上重绘。
+默认情况下，`.crayon` 的纹理图像在主 actor 之外计算。`textureStrength`、`edgeRoughness`、`directionality` 或尺寸变化时，旧纹理会保留到新图像完成；连续变化会取消过时的计算。首次显示时先使用纯色填充，待纹理准备好后再更新。大面积填充仍会消耗 CPU 和内存，因此频繁交互时固定强度有助于降低开销。使用一次性 `ImageRenderer` 导出时，请指定 `renderingMode: .synchronous`，以便第一张图像包含纹理；此模式在主 actor 上计算。`.grain` 填充使用共享栅格缓存，约 120 毫秒内的变化会合并，然后在主 actor 上重绘。
+
+从 0.1.x 迁移时，边缘粗糙度现在默认固定为 `0.8`，与强度独立。若要保留原边缘位移，请将之前的强度（0–1）显式传给 `edgeRoughness`。内部纹理已改变，详见[更新日志](CHANGELOG.md)。
 
 ## 笔刷填充与描边
 
@@ -204,7 +228,7 @@ native 构建系统仅复制 Metal 源文件，因此还需要执行上面的 Xc
 swift test --build-system native
 ```
 
-Validation (0.2.0): **15 regression tests passed** with `swift test --build-system native`. Metal shader compilation is not verified for this release.
+0.2.0 验证：通过 `swift test --build-system native`，**15 项回归测试通过**。此版本的 Metal 着色器编译尚未验证。
 请在示例应用中查看实际效果与动画。根目录的包是库，没有可供 `swift run` 运行的目标。
 
 ### 重新生成预览图片
@@ -214,8 +238,10 @@ Validation (0.2.0): **15 regression tests passed** with `swift test --build-syst
 
 ```sh
 swift run --package-path Tools/PreviewGenerator --build-system native \
-  PreviewGenerator Documentation/Images
+  PreviewGenerator Documentation/Images --all
 ```
 
 此工具生成蜡笔填充、颗粒填充和笔刷描边的静态预览。
 基于 Metal 的边缘效果和手绘抖动请在示例应用中查看。
+
+`--all` 会重新生成所有图片，包括强度、方向性和边缘对比。也可使用 `--compare-directionality`、`--compare-coverage` 或 `--compare-edges` 单独生成。

@@ -26,8 +26,8 @@ struct Drawing: View {
         RoundedRectangle(cornerRadius: 24)
             .brushFill(
                 color: Color(red: 1, green: 0.84, blue: 0.25),
-                textureStrength: 0.9,
-                fillStyle: .crayon(grainSize: 1, seed: 7)
+                textureStrength: 1,
+                fillStyle: .crayon(seed: 7, edgeRoughness: 0.8, directionality: 0.5)
             )
             .frame(width: 280, height: 180)
             .padding(16)
@@ -67,11 +67,33 @@ struct Drawing: View {
 크레파스도 **같은 `brushFill` API**에서 `fillStyle`을 선택합니다.
 별도 크레파스 모디파이어나 텍스처 이미지가 필요하지 않습니다.
 
-종이의 고정된 요철 위에 세 번의 왁스 칠이 쌓이는 과정을 단순화한 모델입니다.
-부드러운 종이 결을 기본으로 하며, `directionality`를 높이면 대각선 왕복 칠 자국이 드러납니다.
-경계도 칠이 끝나는 위치와 작은 입자의 변화를 반영하며, 외곽선을 따로 그리지 않습니다.
+### 세 가지 독립 조절 축
 
-![크레파스 질감 강도 0, 0.5, 1 비교](Documentation/Images/crayon-strength.png)
+`textureStrength`는 내부 칠을 조절합니다. 0은 단색, 1은 종이 결, 2~4는 더 연한 칠입니다. 값이 높을수록 색이 진해지는 것이 아니라 옅어집니다.
+
+`edgeRoughness`는 외곽 거칠기(0~1), `directionality`는 왕복해서 칠한 자국이 드러나는 정도(0~1)입니다. 방향성은 각도를 바꾸는 값이 아닙니다. 강도 0의 단색 내부에서는 방향성의 차이가 보이지 않습니다.
+
+### 강도 × 방향성
+
+행은 강도 1~4, 열은 방향성 0·0.5·1입니다. 색·시드·외곽 거칠기 0.8은 동일합니다.
+
+![강도 × 방향성](Documentation/Images/crayon-directionality.png)
+
+[외곽 거칠기 0으로 같은 조합 보기](Documentation/Images/crayon-directionality-clean.png)
+
+### 더 연하게 칠하기
+
+방향성 0, 외곽 거칠기 0.8을 고정하고 강도만 바꿉니다.
+
+![더 연하게 칠하기](Documentation/Images/crayon-lighter-coverage.png)
+
+### 외곽을 독립적으로 조절하기
+
+내부를 꽉 채운 채 외곽만 거칠게 하거나, 종이 결을 살리면서 외곽을 매끈하게 유지할 수 있습니다.
+
+![외곽을 독립적으로 조절하기](Documentation/Images/crayon-independent-controls.png)
+
+### 파라미터
 
 | 설정 | 기본값 | 설명 |
 | --- | --- | --- |
@@ -90,7 +112,9 @@ struct Drawing: View {
 렌더링 여유 공간은 `ceil(5 × grainSize × edgeRoughness) + 1`pt이며,
 부모의 `.clipped()`는 이 입자를 자를 수 있습니다. `edgeRoughness: 0`에서는 추가 돌출이 없습니다.
 
-기본 설정에서 `.crayon`의 질감 이미지는 메인 액터 밖에서 계산합니다. `textureStrength`나 크기가 바뀌면 새 이미지가 준비될 때까지 이전 질감을 표시하고, 빠른 연속 변경에서는 이전 계산을 취소합니다. 처음 나타날 때는 질감이 준비될 때까지 단색으로 표시됩니다. 큰 채우기는 CPU와 메모리를 계속 사용하므로 잦은 입력 중에는 강도를 고정하는 편이 유리할 수 있습니다. 한 번에 결과를 만드는 `ImageRenderer` 내보내기에는 `renderingMode: .synchronous`를 지정해야 첫 이미지에 질감이 포함됩니다. 이 모드는 메인 액터에서 질감을 계산합니다. `.grain` 채우기는 공용 래스터 캐시를 사용하며 변경을 약 120ms 동안 모은 뒤 메인 액터에서 다시 그립니다.
+기본 설정에서 `.crayon`의 질감 이미지는 메인 액터 밖에서 계산합니다. `textureStrength`, `edgeRoughness`, `directionality`나 크기가 바뀌면 새 이미지가 준비될 때까지 이전 질감을 표시하고, 빠른 연속 변경에서는 이전 계산을 취소합니다. 처음 나타날 때는 질감이 준비될 때까지 단색으로 표시됩니다. 큰 채우기는 CPU와 메모리를 계속 사용하므로 잦은 입력 중에는 강도를 고정하는 편이 유리할 수 있습니다. 한 번에 결과를 만드는 `ImageRenderer` 내보내기에는 `renderingMode: .synchronous`를 지정해야 첫 이미지에 질감이 포함됩니다. 이 모드는 메인 액터에서 질감을 계산합니다. `.grain` 채우기는 공용 래스터 캐시를 사용하며 변경을 약 120ms 동안 모은 뒤 메인 액터에서 다시 그립니다.
+
+0.1.x에서 이전한다면 외곽 거칠기의 기본값은 이제 강도와 무관한 `0.8`입니다. 기존 경계 변위를 유지하려면 `edgeRoughness`에 이전 강도(0~1)를 지정하세요. 내부 질감은 변경되었습니다. [변경 이력](CHANGELOG.md)을 참고하세요.
 
 ## 브러시 채우기와 선
 
@@ -205,7 +229,7 @@ native 빌드 시스템은 Metal 소스를 복사만 하므로, 위의 Xcode 샘
 swift test --build-system native
 ```
 
-Validation (0.2.0): **15 regression tests passed** with `swift test --build-system native`. Metal shader compilation is not verified for this release.
+0.2.0 검증: `swift test --build-system native`로 **회귀 테스트 15개 통과**. 이 릴리스의 Metal 셰이더 컴파일은 검증하지 못했습니다.
 실제 효과와 애니메이션은 샘플 앱에서 확인하세요. 루트 패키지는 라이브러리이므로 `swift run` 대상이 없습니다.
 
 ### 미리보기 이미지 다시 만들기
@@ -215,8 +239,10 @@ macOS에서 저장소 루트를 기준으로 실행합니다. 실제 `Crayon` �
 
 ```sh
 swift run --package-path Tools/PreviewGenerator --build-system native \
-  PreviewGenerator Documentation/Images
+  PreviewGenerator Documentation/Images --all
 ```
 
 이 도구는 크레파스, 그레인, 브러시 선의 정적 이미지를 생성합니다.
 Metal 기반 가장자리 효과와 보일링은 샘플 앱에서 확인합니다.
+
+`--all`은 강도·방향성·외곽 비교를 포함한 모든 이미지를 다시 만듭니다. 개별 비교는 `--compare-directionality`, `--compare-coverage`, `--compare-edges`로 생성할 수 있습니다.

@@ -7,7 +7,7 @@ AI-friendly package guide: [llms.txt](https://github.com/eraser3031/crayon/blob/
 A Swift package for crayon fills, brush strokes, rough edges, and line-boil animation in SwiftUI.
 Create crayon textures without external images, or supply your own brush tip and grain.
 
-![Crayon fill with subtle diagonal layers, paper gaps, and rough edges](Documentation/Images/crayon.png)
+![Crayon: soft grain, directional rubs, and a light touch](Documentation/Images/crayon.png)
 
 - **Requirements:** iOS 17+ · macOS 14+ · Swift tools 5.9+
 - **Product / import:** `Crayon`
@@ -28,8 +28,8 @@ struct Drawing: View {
         RoundedRectangle(cornerRadius: 24)
             .brushFill(
                 color: Color(red: 1, green: 0.84, blue: 0.25),
-                textureStrength: 0.9,
-                fillStyle: .crayon(grainSize: 1, seed: 7)
+                textureStrength: 1,
+                fillStyle: .crayon(seed: 7, edgeRoughness: 0.8, directionality: 0.5)
             )
             .frame(width: 280, height: 180)
             .padding(16)
@@ -70,16 +70,38 @@ Custom tips change the appearance of `.grain` fills and brush strokes.
 Select `fillStyle` on **the same `brushFill` API**.
 No separate crayon modifier or texture image is required.
 
-The renderer accumulates wax over fixed paper relief.
-Soft, fine paper grain is distributed throughout the fill, while broad, gently curved rubbing marks vary its density. Gradual wax contact avoids sharp directional scratches.
-The boundary reflects uneven stopping positions and fine grain, without a separate outline.
+Three independent controls shape the result:
 
-![Crayon texture strength at 0, 0.5, and 1](Documentation/Images/crayon-strength.png)
+- **`textureStrength`** changes the interior: 0 is solid, 1 shows paper grain, and 2–4 make the wax lighter. Higher values mean a lighter fill, not darker pigment.
+- **`edgeRoughness`** changes the boundary: 0 keeps the original shape, 1 gives the roughest edge.
+- **`directionality`** changes how strongly back-and-forth rubbing appears: 0 keeps soft grain, 1 reveals diagonal rubs. It controls their prominence, not their angle.
+
+### Compare strength and directionality
+
+Rows vary `textureStrength` from 1 to 4; columns vary `directionality` from 0 to 1. Every tile uses the same color, seed, and `edgeRoughness: 0.8`.
+
+![Strength 1–4 by directionality 0, 0.5, and 1](Documentation/Images/crayon-directionality.png)
+
+[Compare the same grid with clean edges (`edgeRoughness: 0`)](Documentation/Images/crayon-directionality-clean.png).
+
+### Lighter fills
+
+The same fine paper grain remains as less wax is deposited. Directionality is fixed at 0 and edge roughness at 0.8.
+
+![Crayon strength 1, 2, 3, and 4](Documentation/Images/crayon-lighter-coverage.png)
+
+### Independent edges
+
+A solid interior can have a rough edge, and a textured interior can have a clean edge. At `textureStrength: 0`, directionality has no visible effect because the interior is solid.
+
+![Solid and textured fills with clean and rough edges](Documentation/Images/crayon-independent-controls.png)
+
+### Parameters
 
 | Setting | Default | Description |
 | --- | --- | --- |
 | `color` | `.primary` | Fill color. Its opacity is preserved. |
-| `textureStrength` | `0.8` | `0...4` for crayon (`0...1` for grain). 0 is solid; 1 keeps the original paper gaps; 2–4 deposit less wax evenly across the fill for a lighter color with fine paper grain; they do not add blank bands or enlarge paper gaps. Does not change edge roughness. |
+| `textureStrength` | `0.8` | `0...4` for crayon (`0...1` for grain). 0 is solid; 1 reveals paper grain; 2–4 deposit less wax evenly across the fill for a lighter color with fine paper grain; they do not add blank bands or enlarge paper gaps. Does not change edge roughness. |
 | `.crayon(grainSize:)` | `1` | `0.5...4`. Controls the spatial size of paper grain and wax marks. |
 | `.crayon(edgeRoughness:)` | `0.8` | `0...1`. 0 preserves the original boundary; 1 gives full edge displacement, independently of `textureStrength`. |
 | `.crayon(directionality:)` | `0` | `0...1`. Blends soft grain into overlapping diagonal back-and-forth rubs. Controls the visibility of direction, not its angle. Independent of edge roughness and strength. |
@@ -89,21 +111,13 @@ The boundary reflects uneven stopping positions and fine grain, without a separa
 `grainScale` and `BrushTip` apply to the `.grain` style.
 `fillStyle` selects the texture; the separate `style: FillStyle` controls SwiftUI's even-odd fill rule and antialiasing.
 
+### Layout and rendering
+
 Layout dimensions stay unchanged, but crayon pigment can extend slightly beyond the original boundary.
 The rendering margin is `ceil(5 × grainSize × edgeRoughness) + 1` pt.
-An ancestor's `.clipped()` can trim this pigment. At edge roughness 0, there is no extra overhang. Set both strengths to 0 for a solid fill with a clean boundary. Existing calls use a fixed edge roughness of 0.8; pass the same value as `textureStrength` to reproduce the former coupled behavior.
+An ancestor's `.clipped()` can trim this pigment. At edge roughness 0, there is no extra overhang. Set `textureStrength` and `edgeRoughness` to 0 for a solid fill with a clean boundary. For migration from 0.1.x, see the [0.2.0 changelog](CHANGELOG.md#020--2026-09-29).
 
 By default, `.crayon` computes its coverage image off the main actor. When `textureStrength`, `edgeRoughness`, `directionality`, or geometry changes, the previous texture remains visible until the new image is ready; rapid changes cancel obsolete work. The first appearance shows a solid fill until the texture is ready. Large fills still consume CPU and memory, so keeping texture strength fixed can help during frequent interaction. For a one-shot `ImageRenderer` export, pass `renderingMode: .synchronous` to include the texture in the first image. This mode performs the expensive calculation on the main actor. `.grain` fills use the shared raster cache, which coalesces changes for about 120 ms and also renders on the main actor.
-
-The three independent controls can be combined:
-
-```swift
-RoundedRectangle(cornerRadius: 24)
-    .brushFill(color: .teal, textureStrength: 2,
-               fillStyle: .crayon(edgeRoughness: 0.8, directionality: 0.5))
-```
-
-![Strength 1–4 by directionality 0, 0.5, and 1](Documentation/Images/crayon-directionality.png)
 
 ## Brush fills and strokes
 
@@ -174,7 +188,7 @@ Open [CrayonSample.xcodeproj](Examples/CrayonSample/CrayonSample.xcodeproj) in X
 select the `CrayonSample` scheme, and run on an iOS Simulator or My Mac.
 It references this repository's package locally, so no separate installation is needed.
 
-Change the color, texture strength, and crayon mark size to compare crayon fills, default grain,
+Change the color, texture strength, edge roughness, directionality, and crayon mark size to compare crayon fills, default grain,
 brush strokes, and edge textures. A toggle turns line-boil animation on and off.
 
 If another open project uses the same local package, Xcode may report
@@ -227,8 +241,8 @@ into 2× PNGs using fixed seeds and light mode.
 
 ```sh
 swift run --package-path Tools/PreviewGenerator --build-system native \
-  PreviewGenerator Documentation/Images
+  PreviewGenerator Documentation/Images --all
 ```
 
-The generator produces static previews of crayon fills, grain fills, and brush strokes.
+The `--all` option regenerates every preview, including the strength × directionality grids and independent-edge comparison. Use `--compare-directionality`, `--compare-coverage`, or `--compare-edges` to regenerate only one comparison. Images use synchronous rendering to capture the finished texture.
 Use the sample app for Metal-based edge effects and line-boil animation.
